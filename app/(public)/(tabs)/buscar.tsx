@@ -93,7 +93,7 @@ export default function SearchScreen() {
           actionLabel="Tentar novamente"
           onAction={() => void searchQuery.refetch()}
         />
-      ) : searchQuery.data.data.length === 0 ? (
+      ) : (searchQuery.data?.data.length ?? 0) === 0 ? (
         <StateView
           title="Nenhum imóvel encontrado"
           description="Altere a cidade ou a finalidade para ampliar a busca."
@@ -101,9 +101,9 @@ export default function SearchScreen() {
       ) : (
         <View style={styles.results}>
           <Text style={styles.resultCount}>
-            {searchQuery.data.meta.total} anúncio(s) encontrado(s)
+            {searchQuery.data?.meta.total ?? 0} anúncio(s) encontrado(s)
           </Text>
-          {searchQuery.data.data.map((property) => (
+          {(searchQuery.data?.data ?? []).map((property) => (
             <PropertyCard
               key={property.id}
               property={property}
