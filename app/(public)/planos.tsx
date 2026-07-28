@@ -96,7 +96,18 @@ export default function PlansScreen() {
           onPress={continueToPlan}
         />
         {!isAuthenticated ? (
-          <Button label="Já tenho conta" variant="secondary" onPress={() => router.push('/entrar')} />
+          <Button
+            label="Já tenho conta"
+            variant="secondary"
+            disabled={!selectedPlanId}
+            onPress={() =>
+              selectedPlanId &&
+              router.push({
+                pathname: '/entrar',
+                params: { intent: 'subscribe', plan: String(selectedPlanId) },
+              })
+            }
+          />
         ) : null}
       </View>
     </Screen>
