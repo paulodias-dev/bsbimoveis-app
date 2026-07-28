@@ -2,6 +2,18 @@ function normalizeUrl(value: string | undefined, fallback: string): string {
   return (value?.trim() || fallback).replace(/\/+$/, '');
 }
 
+export type GoogleAuthMode = 'native' | 'authsession' | 'disabled';
+
+function normalizeGoogleAuthMode(value: string | undefined): GoogleAuthMode {
+  const normalized = value?.trim().toLowerCase();
+
+  if (normalized === 'authsession' || normalized === 'disabled') {
+    return normalized;
+  }
+
+  return 'native';
+}
+
 export const env = {
   apiBaseUrl: normalizeUrl(
     process.env.EXPO_PUBLIC_API_BASE_URL,
@@ -15,4 +27,5 @@ export const env = {
   googleAndroidClientId:
     process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || '',
   googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || '',
+  googleAuthMode: normalizeGoogleAuthMode(process.env.EXPO_PUBLIC_GOOGLE_AUTH_MODE),
 };

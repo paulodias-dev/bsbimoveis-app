@@ -10,10 +10,14 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { GoogleAuthSessionButton } from '@/features/auth/GoogleAuthSessionButton';
 import {
-  isGoogleSignInConfigured,
-  requestGoogleAccessToken,
-} from '@/features/auth/googleSignIn';
+  getGoogleAuthNotice,
+  isGoogleAuthAvailable,
+  isGoogleAuthSessionMode,
+  isGoogleNativeMode,
+} from '@/features/auth/googleAuthConfig';
+import { requestGoogleAccessToken } from '@/features/auth/googleSignIn';
 import { colors, spacing } from '@/theme/tokens';
 import { getErrorMessage } from '@/utils/format';
 
@@ -28,7 +32,8 @@ export default function LoginScreen() {
   const { login, socialLogin, isAuthenticated } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const googleConfigured = isGoogleSignInConfigured();
+  const googleEnabled = isGoogleAuthAvailable();
+  const googleNotice = getGoogleAuthNotice();
 
   const {
     control,
@@ -55,14 +60,27 @@ export default function LoginScreen() {
     }
   });
 
+  async function completeGoogleLogin(accessToken: string) {
+    try {
+      await socialLogin('google', accessToken);
+      router.replace('/painel');
+    } catch (error) {
+      setMessage(getErrorMessage(error, 'Não foi possível entrar com Google.'));
+    }
+  }
+
   async function handleGoogleLogin() {
+    if (!googleEnabled || !isGoogleNativeMode()) {
+      setMessage(googleNotice || 'O login com Google nao esta disponivel agora.');
+      return;
+    }
+
     setIsGoogleSubmitting(true);
     setMessage(null);
 
     try {
       const accessToken = await requestGoogleAccessToken();
-      await socialLogin('google', accessToken);
-      router.replace('/painel');
+      await completeGoogleLogin(accessToken);
     } catch (error) {
       setMessage(getErrorMessage(error, 'Não foi possível entrar com Google.'));
     } finally {
@@ -80,19 +98,29 @@ export default function LoginScreen() {
 
       <Card>
         <View style={styles.form}>
-          <Button
-            label={
-              isGoogleSubmitting ? 'Conectando ao Google...' : 'Entrar com Google'
-            }
-            variant="secondary"
-            disabled={!googleConfigured}
-            loading={isGoogleSubmitting}
-            onPress={() => void handleGoogleLogin()}
-          />
+          {isGoogleAuthSessionMode() ? (
+            <GoogleAuthSessionButton
+              disabled={!googleEnabled}
+              loading={isGoogleSubmitting}
+              onAccessToken={completeGoogleLogin}
+              onLoadingChange={setIsGoogleSubmitting}
+              onMessageChange={setMessage}
+            />
+          ) : (
+            <Button
+              label={
+                isGoogleSubmitting ? 'Conectando ao Google...' : 'Entrar com Google'
+              }
+              variant="secondary"
+              disabled={!googleEnabled}
+              loading={isGoogleSubmitting}
+              onPress={() => void handleGoogleLogin()}
+            />
+          )}
 
-          {!googleConfigured ? (
+          {googleNotice ? (
             <Text style={styles.configurationNotice}>
-              Configure os client IDs e o URL Scheme do Google no arquivo `.env`.
+              {googleNotice}
             </Text>
           ) : null}
 

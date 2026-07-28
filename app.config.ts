@@ -1,5 +1,12 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+function resolveGoogleAuthMode(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'authsession' || normalized === 'disabled'
+    ? normalized
+    : 'native';
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'BSB Imóveis',
@@ -30,14 +37,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-secure-store',
-    [
-      '@react-native-google-signin/google-signin',
-      {
-        iosUrlScheme:
-          process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME ||
-          'com.googleusercontent.apps.UNCONFIGURED',
-      },
-    ],
+    ...(resolveGoogleAuthMode(process.env.EXPO_PUBLIC_GOOGLE_AUTH_MODE) === 'native'
+      ? [
+          [
+            '@react-native-google-signin/google-signin',
+            {
+              iosUrlScheme:
+                process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME ||
+                'com.googleusercontent.apps.UNCONFIGURED',
+            },
+          ] as const,
+        ]
+      : []),
     [
       'expo-location',
       {
