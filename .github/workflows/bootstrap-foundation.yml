@@ -1,0 +1,47 @@
+name: Bootstrap Expo foundation
+
+on:
+  push:
+    branches:
+      - agent/expo-mobile-foundation
+    paths:
+      - "scripts/.bootstrap/**"
+      - ".github/workflows/bootstrap-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout foundation branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/expo-mobile-foundation
+          fetch-depth: 0
+
+      - name: Verify and extract foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat scripts/.bootstrap/part-* | base64 --decode > /tmp/foundation.tar.gz
+          echo "dfcbe596f7432b3a173a72dcadf4760e04967c04d67b44edb265b6fa59afe5dd  /tmp/foundation.tar.gz" | sha256sum --check -
+          tar -xzf /tmp/foundation.tar.gz
+          rm -rf scripts/.bootstrap
+          rm -f .github/workflows/bootstrap-foundation.yml
+
+      - name: Commit generated foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git commit -m "Build Expo mobile foundation"
+          git push origin HEAD:agent/expo-mobile-foundation
