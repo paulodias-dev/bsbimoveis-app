@@ -60,7 +60,7 @@ export default function FavoritesScreen() {
           actionLabel="Tentar novamente"
           onAction={() => void favoritesQuery.refetch()}
         />
-      ) : favoritesQuery.data.data.length === 0 ? (
+      ) : (favoritesQuery.data?.data.length ?? 0) === 0 ? (
         <StateView
           title="Nenhum favorito"
           description="Abra um imóvel e toque em salvar para encontrá-lo aqui."
@@ -69,7 +69,7 @@ export default function FavoritesScreen() {
         />
       ) : (
         <View style={styles.list}>
-          {favoritesQuery.data.data.map((property) => (
+          {(favoritesQuery.data?.data ?? []).map((property) => (
             <PropertyCard
               key={property.id}
               property={property}
