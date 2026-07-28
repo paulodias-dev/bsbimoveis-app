@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -23,12 +24,28 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+type Params = {
+  intent?: string;
+  plan?: string;
+  profile?: string;
+  listing_draft_id?: string;
+  listing_draft_token?: string;
+};
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams<Params>();
   const { login, socialLogin, isAuthenticated } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const googleConfigured = isGoogleSignInConfigured();
+
+  const target = useMemo(() => {
+    if (params.intent === 'subscribe' && params.plan) {
+      return { pathname: '/painel/assinatura' as const, params: { plan: params.plan } };
+    }
+    if (params.intent === 'publish') return '/painel/imoveis/novo' as const;
+    return '/painel' as const;
+  }, [params.intent, params.plan]);
 
   const {
     control,
@@ -40,16 +57,14 @@ export default function LoginScreen() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/painel');
-    }
-  }, [isAuthenticated]);
+    if (isAuthenticated) router.replace(target);
+  }, [isAuthenticated, target]);
 
   const submit = handleSubmit(async (values) => {
     setMessage(null);
     try {
       await login(values.email, values.password);
-      router.replace('/painel');
+      router.replace(target);
     } catch (error) {
       setMessage(getErrorMessage(error, 'Não foi possível entrar na conta.'));
     }
@@ -62,7 +77,7 @@ export default function LoginScreen() {
     try {
       const accessToken = await requestGoogleAccessToken();
       await socialLogin('google', accessToken);
-      router.replace('/painel');
+      router.replace(target);
     } catch (error) {
       setMessage(getErrorMessage(error, 'Não foi possível entrar com Google.'));
     } finally {
@@ -78,73 +93,82 @@ export default function LoginScreen() {
         description="Gerencie anúncios, favoritos, assinatura e desempenho."
       />
 
-      <Card>
-        <View style={styles.form}>
-          <Button
-            label={
-              isGoogleSubmitting ? 'Conectando ao Google...' : 'Entrar com Google'
-            }
-            variant="secondary"
-            disabled={!googleConfigured}
-            loading={isGoogleSubmitting}
-            onPress={() => void handleGoogleLogin()}
-          />
+      {(params.intent || params.plan || params.profile) ? (
+        <Card style={styles.contextCard}>
+          <Text style={styles.contextTitle}>Seu destino será preservado</Text>
+          <Text style={styles.contextText}>
+            {params.intent === 'publish'
+              ? 'Depois do login, você continuará no cadastro do imóvel.'
+              : params.plan
+                ? 'Depois do login, você continuará no plano selecionado.'
+                : 'Depois do login, você continuará no painel.'}
+          </Text>
+        </Card>
+      ) : null}
 
-          {!googleConfigured ? (
-            <Text style={styles.configurationNotice}>
-              Configure os client IDs e o URL Scheme do Google no arquivo `.env`.
-            </Text>
-          ) : null}
+      <Card style={styles.formCard}>
+        <Button
+          label={isGoogleSubmitting ? 'Conectando ao Google...' : 'Entrar com Google'}
+          variant="secondary"
+          disabled={!googleConfigured}
+          loading={isGoogleSubmitting}
+          onPress={() => void handleGoogleLogin()}
+        />
 
-          <Text style={styles.divider}>ou continue com e-mail</Text>
+        {!googleConfigured ? (
+          <Text style={styles.configurationNotice}>
+            Configure os client IDs e o URL Scheme do Google no arquivo `.env`.
+          </Text>
+        ) : null}
 
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextField
-                label="E-mail"
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                error={errors.email?.message}
-              />
-            )}
-          />
+        <Text style={styles.divider}>ou continue com e-mail</Text>
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextField
-                label="Senha"
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                secureTextEntry
-                autoComplete="current-password"
-                error={errors.password?.message}
-              />
-            )}
-          />
+        <Controller
+          control={control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <TextField
+              label="E-mail"
+              value={field.value}
+              onBlur={field.onBlur}
+              onChangeText={field.onChange}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              error={fieldState.error?.message}
+            />
+          )}
+        />
 
-          {message ? <Text style={styles.error}>{message}</Text> : null}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field, fieldState }) => (
+            <PasswordField
+              label="Senha"
+              value={field.value}
+              onBlur={field.onBlur}
+              onChangeText={field.onChange}
+              autoComplete="current-password"
+              textContentType="password"
+              error={fieldState.error?.message}
+            />
+          )}
+        />
 
-          <Button
-            label={isSubmitting ? 'Entrando...' : 'Entrar'}
-            loading={isSubmitting}
-            onPress={() => void submit()}
-          />
+        {message ? <Text style={styles.error}>{message}</Text> : null}
 
-          <Button
-            label="Esqueci minha senha"
-            variant="secondary"
-            onPress={() => router.push('/recuperar-senha')}
-          />
-        </View>
+        <Button
+          label={isSubmitting ? 'Entrando...' : 'Entrar'}
+          loading={isSubmitting}
+          onPress={() => void submit()}
+        />
+
+        <Button
+          label="Esqueci minha senha"
+          variant="secondary"
+          onPress={() => router.push('/recuperar-senha')}
+        />
       </Card>
 
       <View style={styles.footer}>
@@ -152,7 +176,18 @@ export default function LoginScreen() {
         <Button
           label="Criar conta"
           variant="secondary"
-          onPress={() => router.push('/cadastro')}
+          onPress={() =>
+            router.push({
+              pathname: '/cadastro',
+              params: {
+                intent: params.intent ?? '',
+                plan: params.plan ?? '',
+                profile: params.profile ?? '',
+                listing_draft_id: params.listing_draft_id ?? '',
+                listing_draft_token: params.listing_draft_token ?? '',
+              },
+            })
+          }
         />
       </View>
     </Screen>
@@ -160,9 +195,10 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  form: {
-    gap: spacing.md,
-  },
+  contextCard: { gap: spacing.xs, backgroundColor: colors.surfaceAlt },
+  contextTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  contextText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
+  formCard: { gap: spacing.md },
   divider: {
     color: colors.textMuted,
     fontSize: 12,
@@ -176,16 +212,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
-  error: {
-    color: colors.danger,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  footer: {
-    gap: spacing.md,
-  },
-  footerText: {
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
+  error: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  footer: { gap: spacing.md },
+  footerText: { color: colors.textMuted, textAlign: 'center' },
 });
