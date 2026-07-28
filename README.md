@@ -4,27 +4,78 @@ Aplicativo mobile multiplataforma do Portal BSB Imóveis, construído com React 
 
 ## Status desta entrega
 
-A fundação já contém:
+A aplicação já contém:
 
-- navegação pública e protegida;
-- autenticação por e-mail e Google Sign-In nativo;
+- navegação pública e painel protegido;
+- autenticação por e-mail e Google;
 - sessão persistida com SecureStore;
 - renovação automática do token;
 - cliente HTTP conectado à API atual;
-- home com imóveis recentes;
-- busca por cidade e finalidade;
-- mapa por viewport com geolocalização;
-- detalhes do imóvel e favoritos;
-- dashboard e carteira do anunciante;
-- rotas preparadas para os demais módulos do painel.
+- home, busca, mapa e detalhes dos imóveis;
+- favoritos;
+- dashboard premium do anunciante;
+- cadastro e edição de imóveis;
+- perfil, avatar e segurança;
+- assinatura, planos e pagamento PIX;
+- desempenho, indicações e oportunidades.
 
 ## Requisitos
 
 - Node.js 22 LTS;
 - npm;
+- **JDK 17 para compilação Android local**;
 - Android Studio para Android local;
 - macOS e Xcode para iOS local;
 - conta Expo para EAS Build.
+
+> O JDK 25 pode continuar instalado no computador, mas não deve ser o Java usado pelo Gradle deste projeto. O arquivo `.java-version` declara Java 17 e `npm run android` executa uma verificação automática antes do build.
+
+## Configurando o JDK 17
+
+### Ubuntu e distribuições derivadas
+
+```bash
+sudo apt update
+sudo apt install openjdk-17-jdk
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+hash -r
+
+java -version
+npm run java:check
+```
+
+Para manter a configuração após reiniciar o terminal, adicione ao `~/.bashrc` ou `~/.zshrc`:
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Depois recarregue o shell:
+
+```bash
+source ~/.bashrc
+```
+
+### Android Studio
+
+Em **Settings > Build, Execution, Deployment > Build Tools > Gradle**, selecione um **Gradle JDK 17**. O JDK configurado no Android Studio pode ser diferente do Java padrão do sistema.
+
+### Verificação
+
+```bash
+java -version
+npm run java:check
+```
+
+A saída esperada é semelhante a:
+
+```text
+openjdk version "17.x.x"
+✅ Java 17 detectado. Ambiente Android compatível.
+```
 
 ## Instalação
 
@@ -34,24 +85,51 @@ cp .env.example .env
 npm run start
 ```
 
-`npm run start` inicia o servidor Expo normalmente. Como este projeto usa Google Sign-In nativo, o fluxo completo de autenticacao deve ser testado em um Development Build.
+`npm run start` inicia o servidor Expo normalmente. Como este projeto usa módulos nativos, o fluxo completo deve ser testado em um Development Build.
 
-Para deixar explicito o alvo de execucao:
+Para deixar explícito o alvo de execução:
 
 ```bash
 npm run start:go
 npm run start:dev-client
 ```
 
-No Expo Go, o app pode abrir para navegacao basica, mas o login com Google fica desativado.
+No Expo Go, o app pode abrir para navegação básica, mas módulos nativos como o login Google podem ficar indisponíveis.
 
-Para gerar um Development Build:
+## Executando no Android
+
+Com o emulador ou dispositivo conectado:
 
 ```bash
-npx expo install expo-dev-client
+npm run java:check
+npm run android
+```
+
+Para recriar o projeto Android nativo:
+
+```bash
+npm run android:prebuild
+npm run android
+```
+
+Caso o diretório `android/` tenha sido gerado anteriormente usando outro JDK e o Gradle continue reaproveitando processos antigos:
+
+```bash
+cd android
+./gradlew --stop
+cd ..
+rm -rf android/.gradle
+npm run android
+```
+
+## Development Build com EAS
+
+```bash
 npx eas-cli@latest login
 npx eas-cli@latest build --profile development --platform android
 ```
+
+O EAS Build usa a imagem oficial do Expo SDK 57 com JDK 17, independentemente do JDK padrão instalado localmente.
 
 ## Configuração obrigatória
 
@@ -63,7 +141,7 @@ Preencha as variáveis em `.env`:
 - chaves do Google Maps;
 - ID do projeto EAS.
 
-Se voce usar `EXPO_PUBLIC_GOOGLE_AUTH_MODE=authsession`, o login Google passa a usar navegador via `expo-auth-session`. Isso nao libera testes OAuth no Expo Go: a documentacao oficial do Expo informa que o Expo Go nao suporta esse fluxo localmente, entao o caminho continua sendo usar Development Build ou desativar o Google durante o desenvolvimento.
+Se você usar `EXPO_PUBLIC_GOOGLE_AUTH_MODE=authsession`, o login Google utiliza o navegador via `expo-auth-session`. Para testar os recursos nativos, use um Development Build.
 
 O backend atual recebe o `access_token` Google em `POST /auth/social`. A evolução recomendada é aceitar `id_token` ou `server_auth_code` validado no servidor.
 
@@ -71,6 +149,7 @@ O backend atual recebe o `access_token` Google em `POST /auth/social`. A evoluç
 
 ```text
 app/                  rotas Expo Router
+scripts/              verificações do ambiente local
 src/components/       componentes reutilizáveis
 src/features/         módulos de negócio
 src/providers/        providers globais
@@ -79,11 +158,3 @@ src/stores/           estado local/global
 src/theme/            tokens visuais
 src/types/            contratos da API
 ```
-
-## Próximas entregas
-
-1. wizard completo de cadastro e edição do imóvel;
-2. upload, recorte e reordenação de fotos;
-3. perfil e segurança;
-4. assinatura, PIX e ponte nativa Mercado Pago;
-5. indicações, gráficos e regressão funcional.
