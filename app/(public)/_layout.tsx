@@ -11,6 +11,20 @@ export default function PublicLayout() {
           headerBackTitle: 'Voltar',
         }}
       />
+      <Stack.Screen
+        name="anunciar"
+        options={{
+          title: 'Anunciar imóvel',
+          headerBackTitle: 'Voltar',
+        }}
+      />
+      <Stack.Screen
+        name="planos"
+        options={{
+          title: 'Planos',
+          headerBackTitle: 'Voltar',
+        }}
+      />
     </Stack>
   );
 }
