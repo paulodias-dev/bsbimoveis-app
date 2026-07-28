@@ -51,6 +51,29 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      <View style={styles.commercialActions}>
+        <Card style={styles.commercialCard}>
+          <Text style={styles.commercialKicker}>PARA ANUNCIANTES</Text>
+          <Text style={styles.commercialTitle}>Publique seu imóvel pelo aplicativo</Text>
+          <Text style={styles.commercialText}>
+            Escolha seu perfil, crie a conta e complete endereço, fotos e características no painel.
+          </Text>
+          <Button label="Anunciar imóvel" onPress={() => router.push('/anunciar')} />
+        </Card>
+        <Card style={styles.commercialCard}>
+          <Text style={styles.commercialKicker}>PLANOS</Text>
+          <Text style={styles.commercialTitle}>Compare limites e recursos</Text>
+          <Text style={styles.commercialText}>
+            Consulte quantidade de imóveis, fotos, validade e destaque antes de assinar.
+          </Text>
+          <Button
+            label="Conhecer planos"
+            variant="secondary"
+            onPress={() => router.push('/planos')}
+          />
+        </Card>
+      </View>
+
       {homeQuery.isLoading ? (
         <Card>
           <StateView title="Carregando imóveis..." loading />
@@ -136,6 +159,28 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm,
     marginTop: spacing.sm,
+  },
+  commercialActions: {
+    gap: spacing.md,
+  },
+  commercialCard: {
+    gap: spacing.sm,
+  },
+  commercialKicker: {
+    color: colors.brand,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  commercialTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  commercialText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
   },
   section: {
     gap: spacing.lg,

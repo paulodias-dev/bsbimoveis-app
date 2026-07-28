@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
@@ -27,9 +28,11 @@ function formatDate(value: string | null | undefined): string {
 }
 
 export default function SubscriptionScreen() {
+  const params = useLocalSearchParams<{ plan?: string }>();
+  const requestedPlanId = Number(params.plan) || null;
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(requestedPlanId);
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
@@ -52,14 +55,24 @@ export default function SubscriptionScreen() {
   const subscription = subscriptionQuery.data?.data ?? null;
 
   useEffect(() => {
-    if (selectedPlanId || plans.length === 0) return;
+    if (plans.length === 0) return;
+
+    if (requestedPlanId && plans.some((plan) => plan.id === requestedPlanId)) {
+      if (selectedPlanId !== requestedPlanId) {
+        setSelectedPlanId(requestedPlanId);
+        setPayment(null);
+      }
+      return;
+    }
+
+    if (selectedPlanId) return;
     const initial =
       plans.find((plan) => plan.id === subscription?.plan?.id) ??
       plans.find((plan) => plan.is_recommended) ??
       plans.find((plan) => plan.is_default) ??
       plans[0];
     setSelectedPlanId(initial?.id ?? null);
-  }, [plans, selectedPlanId, subscription?.plan?.id]);
+  }, [plans, requestedPlanId, selectedPlanId, subscription?.plan?.id]);
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? null;
 
