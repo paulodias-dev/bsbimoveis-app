@@ -8,7 +8,7 @@ import { Screen } from '@/components/ui/Screen';
 import { StateView } from '@/components/ui/StateView';
 import { TextField } from '@/components/ui/TextField';
 import { usePainelStore } from '@/stores/usePainelStore';
-import { spacing } from '@/theme/tokens';
+import { colors, spacing } from '@/theme/tokens';
 
 export default function MyPropertiesScreen() {
   const { properties, isLoading, hydrate } = usePainelStore();
@@ -42,7 +42,7 @@ export default function MyPropertiesScreen() {
       <PageHeader
         eyebrow="Gestão de anúncios"
         title="Meus imóveis"
-        description="Carteira real carregada pelo endpoint `/me/properties`."
+        description="Toque em um anúncio para editar dados, endereço, comodidades, fotos ou publicação."
       />
 
       <Link href="/painel/imoveis/novo" asChild>
@@ -67,16 +67,18 @@ export default function MyPropertiesScreen() {
         <View style={styles.list}>
           <Text style={styles.count}>{filtered.length} imóvel(is)</Text>
           {filtered.map((property) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onPress={() =>
-                router.push({
-                  pathname: '/imoveis/[id]',
-                  params: { id: String(property.id) },
-                })
-              }
-            />
+            <View key={property.id} style={styles.item}>
+              <PropertyCard
+                property={property}
+                onPress={() =>
+                  router.push({
+                    pathname: '/painel/imoveis/[id]/editar',
+                    params: { id: String(property.id) },
+                  })
+                }
+              />
+              <Text style={styles.hint}>Toque no card para gerenciar este anúncio.</Text>
+            </View>
           ))}
         </View>
       )}
@@ -85,11 +87,8 @@ export default function MyPropertiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: {
-    gap: spacing.lg,
-  },
-  count: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  list: { gap: spacing.lg },
+  item: { gap: spacing.xs },
+  count: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  hint: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
 });
