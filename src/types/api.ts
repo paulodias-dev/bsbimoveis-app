@@ -75,6 +75,7 @@ export interface Property {
   id: number;
   user_id: number;
   user?: PropertyAdvertiser | null;
+  category_id?: number | null;
   category: PropertyCategory | null;
   title: string;
   description: string | null;
@@ -90,6 +91,7 @@ export interface Property {
   bathrooms: number | null;
   parking_spaces: number | null;
   address_line: string | null;
+  address_number?: string | null;
   neighborhood: string | null;
   city: string | null;
   state: string | null;
