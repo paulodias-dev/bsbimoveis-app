@@ -73,7 +73,7 @@ export default function HomeScreen() {
               description="As categorias são carregadas diretamente da API do portal."
             />
             <View style={styles.categoryGrid}>
-              {homeQuery.data.categories.slice(0, 8).map((category) => (
+              {(homeQuery.data?.categories ?? []).slice(0, 8).map((category) => (
                 <Card key={category.id} style={styles.categoryCard}>
                   <Text style={styles.categoryName}>{category.name}</Text>
                 </Card>
@@ -88,7 +88,7 @@ export default function HomeScreen() {
               description="Anúncios publicados e disponíveis na vitrine."
             />
             <View style={styles.list}>
-              {homeQuery.data.properties.map((property) => (
+              {(homeQuery.data?.properties ?? []).map((property) => (
                 <PropertyCard
                   key={property.id}
                   property={property}
