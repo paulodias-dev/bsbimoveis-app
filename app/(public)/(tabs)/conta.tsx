@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Screen } from '@/components/ui/Screen';
 import { StateView } from '@/components/ui/StateView';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { resolveAvatarUrl } from '@/features/profile/profileService';
 import { colors, spacing } from '@/theme/tokens';
 
 export default function AccountScreen() {
@@ -39,6 +40,8 @@ export default function AccountScreen() {
     );
   }
 
+  const avatarUrl = resolveAvatarUrl(user.avatar_path);
+
   return (
     <Screen>
       <PageHeader
@@ -50,13 +53,17 @@ export default function AccountScreen() {
       <Card>
         <View style={styles.profile}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user.name
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((item) => item[0]?.toUpperCase())
-                .join('')}
-            </Text>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {user.name
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((item) => item[0]?.toUpperCase())
+                  .join('')}
+              </Text>
+            )}
           </View>
           <View style={styles.profileText}>
             <Text style={styles.name}>{user.name}</Text>
@@ -68,6 +75,16 @@ export default function AccountScreen() {
       <View style={styles.actions}>
         <Button label="Abrir painel" onPress={() => router.push('/painel')} />
         <Button
+          label="Editar perfil"
+          variant="secondary"
+          onPress={() => router.push('/painel/perfil')}
+        />
+        <Button
+          label="Segurança"
+          variant="secondary"
+          onPress={() => router.push('/painel/seguranca')}
+        />
+        <Button
           label="Sair da conta"
           variant="secondary"
           onPress={() => void logout()}
@@ -78,38 +95,20 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  actions: {
-    gap: spacing.md,
-  },
-  profile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+  actions: { gap: spacing.md },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: {
     width: 58,
     height: 58,
     borderRadius: 29,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.brandSoft,
   },
-  avatarText: {
-    color: colors.brandDark,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  profileText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  name: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  email: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarText: { color: colors.brandDark, fontSize: 18, fontWeight: '900' },
+  profileText: { flex: 1, gap: spacing.xs },
+  name: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  email: { color: colors.textMuted, fontSize: 14 },
 });
