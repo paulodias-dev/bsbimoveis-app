@@ -112,7 +112,12 @@ export default function AdvertiseScreen() {
         <Button
           label="Já tenho conta"
           variant="secondary"
-          onPress={() => router.push('/entrar')}
+          onPress={() =>
+            router.push({
+              pathname: '/entrar',
+              params: { intent: 'publish', profile: selectedProfile },
+            })
+          }
         />
       ) : null}
     </Screen>
