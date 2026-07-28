@@ -32,6 +32,17 @@ interface RegisterPayload {
   document_version: number;
   role?: string;
   referral_code?: string;
+  listing_draft_id?: string;
+  listing_draft_token?: string;
+}
+
+interface SocialLoginOptions {
+  terms_accepted?: boolean;
+  document_version?: number;
+  role?: string;
+  referral_code?: string;
+  listing_draft_id?: string;
+  listing_draft_token?: string;
 }
 
 interface AuthContextValue {
@@ -40,7 +51,11 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
-  socialLogin: (provider: 'google', socialAccessToken: string) => Promise<AuthResponse>;
+  socialLogin: (
+    provider: 'google',
+    socialAccessToken: string,
+    options?: SocialLoginOptions,
+  ) => Promise<AuthResponse>;
   registerAccount: (payload: RegisterPayload) => Promise<AuthResponse>;
   forgotPassword: (email: string) => Promise<MessageResponse>;
   logout: () => Promise<void>;
@@ -157,10 +172,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const socialLogin = useCallback(
-    async (provider: 'google', socialAccessToken: string) => {
+    async (
+      provider: 'google',
+      socialAccessToken: string,
+      options: SocialLoginOptions = {},
+    ) => {
       const response = await apiClient.post<AuthResponse>(
         '/auth/social',
-        { provider, access_token: socialAccessToken },
+        { provider, access_token: socialAccessToken, ...options },
         { auth: false, skipAuthRefresh: true },
       );
       await persistSession(response);
