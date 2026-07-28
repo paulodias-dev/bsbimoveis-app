@@ -1,0 +1,44 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: TypeScript
+        id: typecheck
+        continue-on-error: true
+        run: npm run typecheck > typecheck.log 2>&1
+      - name: Upload TypeScript report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-report
+          path: typecheck.log
+      - name: Enforce TypeScript result
+        if: steps.typecheck.outcome == 'failure'
+        run: exit 1
+      - name: Expo Doctor
+        id: doctor
+        continue-on-error: true
+        run: npm run doctor > doctor.log 2>&1
+      - name: Upload Expo Doctor report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-doctor-report
+          path: doctor.log
+      - name: Enforce Expo Doctor result
+        if: steps.doctor.outcome == 'failure'
+        run: exit 1
