@@ -10,6 +10,7 @@ export default function PanelLayout() {
       <Stack.Screen name="index" options={{ title: 'Painel' }} />
       <Stack.Screen name="imoveis/index" options={{ title: 'Meus imóveis' }} />
       <Stack.Screen name="imoveis/novo" options={{ title: 'Novo imóvel' }} />
+      <Stack.Screen name="imoveis/[id]/editar" options={{ title: 'Editar imóvel' }} />
       <Stack.Screen name="desempenho" options={{ title: 'Desempenho' }} />
       <Stack.Screen name="favoritos" options={{ title: 'Favoritos' }} />
       <Stack.Screen name="assinatura" options={{ title: 'Assinatura' }} />
