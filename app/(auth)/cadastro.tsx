@@ -77,7 +77,7 @@ export default function RegisterScreen() {
   const {
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -102,16 +102,17 @@ export default function RegisterScreen() {
     router.replace(target);
   }, [target]);
 
-  const validateLegalAcceptance = useCallback((): documentVersion is number => {
+  const acceptedDocumentVersion = useCallback((): number | null => {
     if (!termsAccepted || documentVersion === null) {
       setMessage('Leia e aceite a versão atual dos Termos de Uso para continuar.');
-      return false;
+      return null;
     }
-    return true;
+    return documentVersion;
   }, [documentVersion, termsAccepted]);
 
   const submit = handleSubmit(async (values) => {
-    if (!validateLegalAcceptance()) return;
+    const version = acceptedDocumentVersion();
+    if (version === null) return;
     setMessage(null);
 
     try {
@@ -120,7 +121,7 @@ export default function RegisterScreen() {
         email: values.email.trim(),
         password: values.password,
         terms_accepted: true,
-        document_version: documentVersion,
+        document_version: version,
         role: selectedRole,
         referral_code: normalizeCoupon(values.referralCode) || undefined,
         listing_draft_id: params.listing_draft_id || undefined,
@@ -133,14 +134,15 @@ export default function RegisterScreen() {
   });
 
   async function registerWithGoogle() {
-    if (!validateLegalAcceptance()) return;
+    const version = acceptedDocumentVersion();
+    if (version === null) return;
     setIsGoogleSubmitting(true);
     setMessage(null);
     try {
       const token = await requestGoogleAccessToken();
       await socialLogin('google', token, {
         terms_accepted: true,
-        document_version: documentVersion,
+        document_version: version,
         role: selectedRole,
         referral_code: initialCoupon || undefined,
         listing_draft_id: params.listing_draft_id || undefined,
