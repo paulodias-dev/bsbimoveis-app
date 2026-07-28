@@ -29,4 +29,16 @@ jobs:
       - name: Enforce TypeScript result
         if: steps.typecheck.outcome == 'failure'
         run: exit 1
-      - run: npm run doctor
+      - name: Expo Doctor
+        id: doctor
+        continue-on-error: true
+        run: npm run doctor > doctor.log 2>&1
+      - name: Upload Expo Doctor report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-doctor-report
+          path: doctor.log
+      - name: Enforce Expo Doctor result
+        if: steps.doctor.outcome == 'failure'
+        run: exit 1
