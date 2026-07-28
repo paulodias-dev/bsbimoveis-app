@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +28,8 @@ export function Button({
   style,
   ...props
 }: ButtonProps) {
+  const pathname = usePathname();
+  const isPanel = pathname.startsWith('/painel');
   const isDisabled = disabled || loading;
 
   return (
@@ -36,6 +39,9 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         styles[variant],
+        isPanel && styles.panelBase,
+        isPanel && variant === 'primary' && styles.panelPrimary,
+        isPanel && variant === 'secondary' && styles.panelSecondary,
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
         style,
@@ -47,7 +53,13 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Text style={[styles.label, variant === 'secondary' && styles.secondaryLabel]}>
+          <Text
+            style={[
+              styles.label,
+              variant === 'secondary' && styles.secondaryLabel,
+              isPanel && styles.panelLabel,
+            ]}
+          >
             {label}
           </Text>
         </>
@@ -77,6 +89,22 @@ const styles = StyleSheet.create({
   danger: {
     backgroundColor: colors.danger,
   },
+  panelBase: {
+    minHeight: 50,
+    borderRadius: 18,
+  },
+  panelPrimary: {
+    shadowColor: colors.brand,
+    shadowOffset: { width: 0, height: 9 },
+    shadowOpacity: 0.24,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  panelSecondary: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.82)',
+    backgroundColor: 'rgba(255,255,255,0.48)',
+  },
   pressed: {
     opacity: 0.84,
     transform: [{ scale: 0.99 }],
@@ -88,6 +116,10 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 15,
     fontWeight: '700',
+  },
+  panelLabel: {
+    fontSize: 13,
+    fontWeight: '900',
   },
   secondaryLabel: {
     color: colors.brandDark,
