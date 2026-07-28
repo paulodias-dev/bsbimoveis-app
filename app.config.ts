@@ -45,6 +45,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           'A BSB Imóveis usa sua localização para mostrar imóveis próximos de você.',
       },
     ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'A BSB Imóveis acessa suas fotos para adicionar imagens aos anúncios.',
+        cameraPermission:
+          'A BSB Imóveis acessa a câmera para fotografar os imóveis anunciados.',
+        microphonePermission: false,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
