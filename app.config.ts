@@ -1,5 +1,9 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+const EAS_PROJECT_ID =
+  process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim() ||
+  'f8ddfe5c-4d03-4ee2-a9e5-b8be0c81b790';
+
 function resolveGoogleAuthMode(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
   return normalized === 'authsession' || normalized === 'disabled'
@@ -72,7 +76,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
+      projectId: EAS_PROJECT_ID,
     },
   },
 });
