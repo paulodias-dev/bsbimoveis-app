@@ -12,7 +12,6 @@ import {
 import {
   Image,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -41,7 +40,7 @@ const PanelChromeContext = createContext<PanelChromeContextValue | null>(null);
 
 export function PanelChromeProvider({ children }: PropsWithChildren) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const value = useMemo(
+  const value = useMemo<PanelChromeContextValue>(
     () => ({
       isMenuOpen,
       openMenu: () => setIsMenuOpen(true),
@@ -53,7 +52,7 @@ export function PanelChromeProvider({ children }: PropsWithChildren) {
   return <PanelChromeContext.Provider value={value}>{children}</PanelChromeContext.Provider>;
 }
 
-function usePanelChrome() {
+function usePanelChrome(): PanelChromeContextValue {
   const context = useContext(PanelChromeContext);
   if (!context) throw new Error('PanelChromeProvider não encontrado.');
   return context;
@@ -66,6 +65,14 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('');
+}
+
+function activeIcon(item: PanelNavigationItem): PanelNavigationItem['icon'] {
+  if (item.label === 'Início') return 'home';
+  if (item.label === 'Imóveis') return 'business';
+  if (item.label === 'Dados') return 'analytics';
+  if (item.label === 'Conta') return 'person';
+  return item.icon;
 }
 
 export function PanelBackground() {
@@ -85,7 +92,6 @@ export function PanelHeader() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { openMenu } = usePanelChrome();
-  const title = panelRouteTitle(pathname);
   const isDashboard = pathname === '/painel' || pathname === '/painel/';
   const avatarUrl = resolveAvatarUrl(user?.avatar_path);
 
@@ -97,7 +103,7 @@ export function PanelHeader() {
         blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
-      <View style={[StyleSheet.absoluteFill, styles.headerTint]} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glassTint]} />
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
           {!isDashboard ? (
@@ -105,7 +111,7 @@ export function PanelHeader() {
               accessibilityRole="button"
               accessibilityLabel="Voltar"
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}
             >
               <Ionicons name="chevron-back" size={22} color={colors.text} />
             </Pressable>
@@ -114,7 +120,7 @@ export function PanelHeader() {
             accessibilityRole="button"
             accessibilityLabel="Abrir menu"
             onPress={openMenu}
-            style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.roundButton, pressed && styles.pressed]}
           >
             <Ionicons name="menu" size={24} color={colors.text} />
           </Pressable>
@@ -122,7 +128,9 @@ export function PanelHeader() {
 
         <View style={styles.headerTitleArea}>
           <Text style={styles.headerEyebrow}>BSB IMÓVEIS</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {panelRouteTitle(pathname)}
+          </Text>
         </View>
 
         <Pressable
@@ -132,9 +140,9 @@ export function PanelHeader() {
           style={({ pressed }) => [styles.headerAvatar, pressed && styles.pressed]}
         >
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.headerAvatarImage} />
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
           ) : (
-            <Text style={styles.headerAvatarText}>{initials(user?.name ?? 'U')}</Text>
+            <Text style={styles.avatarText}>{initials(user?.name ?? 'U')}</Text>
           )}
           <View style={styles.onlineDot} />
         </Pressable>
@@ -158,25 +166,25 @@ export function PanelBottomBar() {
         blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
-      <View style={[StyleSheet.absoluteFill, styles.bottomTint]} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.bottomTint]} />
       <View style={styles.bottomContent}>
         {bottomNavigationItems.map((item, index) => {
           const active = isPanelRouteActive(pathname, item);
-          const isCenter = index === 2;
+          const center = index === 2;
 
-          if (isCenter) {
+          if (center) {
             return (
               <Pressable
                 key={item.label}
                 accessibilityRole="button"
-                accessibilityLabel="Cadastrar novo imóvel"
+                accessibilityLabel="Cadastrar imóvel"
                 onPress={() => router.push(item.href)}
-                style={({ pressed }) => [styles.centerActionSlot, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.centerSlot, pressed && styles.pressed]}
               >
-                <View style={styles.centerAction}>
+                <View style={styles.centerButton}>
                   <Ionicons name="add" size={29} color={colors.white} />
                 </View>
-                <Text style={styles.centerActionLabel}>{item.label}</Text>
+                <Text style={styles.centerLabel}>{item.label}</Text>
               </Pressable>
             );
           }
@@ -207,14 +215,6 @@ export function PanelBottomBar() {
       </View>
     </View>
   );
-}
-
-function activeIcon(item: PanelNavigationItem): PanelNavigationItem['icon'] {
-  if (item.label === 'Início') return 'home';
-  if (item.label === 'Imóveis') return 'business';
-  if (item.label === 'Dados') return 'analytics';
-  if (item.label === 'Conta') return 'person';
-  return item.icon;
 }
 
 export function PanelDrawer() {
@@ -253,6 +253,7 @@ export function PanelDrawer() {
           onPress={closeMenu}
           style={styles.drawerBackdrop}
         />
+
         <View
           style={[
             styles.drawerShell,
@@ -268,10 +269,10 @@ export function PanelDrawer() {
             blurMethod="dimezisBlurViewSdk31Plus"
             style={StyleSheet.absoluteFill}
           />
-          <View style={[StyleSheet.absoluteFill, styles.drawerTint]} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.drawerTint]} />
 
           <View style={styles.drawerTopbar}>
-            <View style={styles.drawerBrand}>
+            <View style={styles.brandRow}>
               <View style={styles.brandMark}>
                 <Ionicons name="home" size={17} color={colors.white} />
               </View>
@@ -290,17 +291,17 @@ export function PanelDrawer() {
             </Pressable>
           </View>
 
-          <View style={styles.drawerProfile}>
+          <View style={styles.profileCard}>
             <View style={styles.drawerAvatar}>
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.drawerAvatarImage} />
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
               ) : (
                 <Text style={styles.drawerAvatarText}>{initials(user?.name ?? 'U')}</Text>
               )}
             </View>
-            <View style={styles.drawerProfileCopy}>
-              <Text style={styles.drawerName} numberOfLines={1}>{user?.name ?? 'Usuário'}</Text>
-              <Text style={styles.drawerEmail} numberOfLines={1}>{user?.email ?? ''}</Text>
+            <View style={styles.profileCopy}>
+              <Text style={styles.profileName} numberOfLines={1}>{user?.name ?? 'Usuário'}</Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>{user?.email ?? ''}</Text>
               <View style={styles.accountBadge}>
                 <Ionicons name="sparkles" size={11} color={colors.brandDark} />
                 <Text style={styles.accountBadgeText}>Conta ativa</Text>
@@ -314,8 +315,8 @@ export function PanelDrawer() {
           >
             {drawerNavigationGroups.map((group) => (
               <View key={group.title} style={styles.drawerGroup}>
-                <Text style={styles.drawerGroupTitle}>{group.title}</Text>
-                <View style={styles.drawerGroupItems}>
+                <Text style={styles.groupTitle}>{group.title}</Text>
+                <View style={styles.groupItems}>
                   {group.items.map((item) => {
                     const active = isPanelRouteActive(pathname, item);
                     return (
@@ -342,7 +343,7 @@ export function PanelDrawer() {
                             {item.label}
                           </Text>
                           {item.description ? (
-                            <Text style={styles.drawerItemDescription}>{item.description}</Text>
+                            <Text style={styles.drawerDescription}>{item.description}</Text>
                           ) : null}
                         </View>
                         <Ionicons name="chevron-forward" size={16} color="#98A2B3" />
@@ -383,11 +384,19 @@ export function PanelDrawer() {
 
 const styles = StyleSheet.create({
   backgroundBase: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: '#EEF2FF',
   },
   backgroundWash: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: 'rgba(248,250,255,0.34)',
   },
   orbTop: {
@@ -417,15 +426,13 @@ const styles = StyleSheet.create({
     right: -130,
     backgroundColor: 'rgba(170,132,255,0.18)',
   },
+  glassTint: { backgroundColor: 'rgba(255,255,255,0.20)' },
   headerShell: {
     minHeight: 84,
     overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.78)',
     backgroundColor: 'rgba(255,255,255,0.50)',
-  },
-  headerTint: {
-    backgroundColor: 'rgba(255,255,255,0.20)',
   },
   headerContent: {
     minHeight: 66,
@@ -435,12 +442,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  headerLeft: {
-    minWidth: 48,
-    flexDirection: 'row',
-    gap: 4,
-  },
-  headerButton: {
+  headerLeft: { minWidth: 48, flexDirection: 'row', gap: 4 },
+  roundButton: {
     width: 42,
     height: 42,
     borderRadius: radius.pill,
@@ -450,22 +453,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.88)',
     backgroundColor: 'rgba(255,255,255,0.54)',
   },
-  headerTitleArea: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  headerEyebrow: {
-    color: colors.brand,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  headerTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '900',
-  },
+  headerTitleArea: { flex: 1, alignItems: 'center', gap: 2 },
+  headerEyebrow: { color: colors.brand, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  headerTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   headerAvatar: {
     width: 43,
     height: 43,
@@ -477,16 +467,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
     ...shadow.card,
   },
-  headerAvatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: radius.pill,
-  },
-  headerAvatarText: {
-    color: colors.brandDark,
-    fontSize: 13,
-    fontWeight: '900',
-  },
+  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
+  avatarText: { color: colors.brandDark, fontSize: 13, fontWeight: '900' },
   onlineDot: {
     position: 'absolute',
     right: -1,
@@ -499,15 +481,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#12B76A',
   },
   bottomShell: {
-    overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
+    overflow: 'hidden',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.85)',
     backgroundColor: 'rgba(255,255,255,0.56)',
     ...shadow.card,
   },
-  bottomTint: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
+  bottomTint: { backgroundColor: 'rgba(255,255,255,0.18)' },
   bottomContent: {
     minHeight: 68,
     paddingHorizontal: spacing.sm,
@@ -523,26 +503,11 @@ const styles = StyleSheet.create({
     gap: 3,
     borderRadius: radius.md,
   },
-  bottomItemActive: {
-    backgroundColor: 'rgba(49,87,255,0.08)',
-  },
-  bottomLabel: {
-    color: '#7A8499',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  bottomLabelActive: {
-    color: colors.brandDark,
-    fontWeight: '900',
-  },
-  centerActionSlot: {
-    flex: 1,
-    minHeight: 74,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginTop: -22,
-  },
-  centerAction: {
+  bottomItemActive: { backgroundColor: 'rgba(49,87,255,0.08)' },
+  bottomLabel: { color: '#7A8499', fontSize: 10, fontWeight: '700' },
+  bottomLabelActive: { color: colors.brandDark, fontWeight: '900' },
+  centerSlot: { flex: 1, minHeight: 74, alignItems: 'center', marginTop: -22 },
+  centerButton: {
     width: 57,
     height: 57,
     borderRadius: 20,
@@ -557,18 +522,14 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 8,
   },
-  centerActionLabel: {
-    color: colors.brandDark,
-    fontSize: 10,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  modalRoot: {
-    flex: 1,
-    flexDirection: 'row',
-  },
+  centerLabel: { color: colors.brandDark, fontSize: 10, fontWeight: '900', marginTop: 2 },
+  modalRoot: { flex: 1, flexDirection: 'row' },
   drawerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: 'rgba(9,17,38,0.42)',
   },
   drawerShell: {
@@ -587,11 +548,8 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     elevation: 18,
   },
-  drawerTint: {
-    backgroundColor: 'rgba(255,255,255,0.20)',
-  },
+  drawerTint: { backgroundColor: 'rgba(255,255,255,0.20)' },
   drawerTopbar: {
-    position: 'relative',
     zIndex: 1,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
@@ -599,11 +557,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  drawerBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   brandMark: {
     width: 38,
     height: 38,
@@ -612,15 +566,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.brand,
   },
-  brandName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  brandCaption: {
-    color: colors.textMuted,
-    fontSize: 10,
-  },
+  brandName: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  brandCaption: { color: colors.textMuted, fontSize: 10 },
   closeButton: {
     width: 40,
     height: 40,
@@ -631,8 +578,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.90)',
     backgroundColor: 'rgba(255,255,255,0.52)',
   },
-  drawerProfile: {
-    position: 'relative',
+  profileCard: {
     zIndex: 1,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
@@ -654,28 +600,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.brandSoft,
   },
-  drawerAvatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  drawerAvatarText: {
-    color: colors.brandDark,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  drawerProfileCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  drawerName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  drawerEmail: {
-    color: colors.textMuted,
-    fontSize: 11,
-  },
+  drawerAvatarText: { color: colors.brandDark, fontSize: 18, fontWeight: '900' },
+  profileCopy: { flex: 1, gap: 3 },
+  profileName: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  profileEmail: { color: colors.textMuted, fontSize: 11 },
   accountBadge: {
     alignSelf: 'flex-start',
     marginTop: 3,
@@ -687,22 +615,10 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: colors.brandSoft,
   },
-  accountBadgeText: {
-    color: colors.brandDark,
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  drawerScroll: {
-    position: 'relative',
-    zIndex: 1,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-    gap: spacing.lg,
-  },
-  drawerGroup: {
-    gap: spacing.sm,
-  },
-  drawerGroupTitle: {
+  accountBadgeText: { color: colors.brandDark, fontSize: 9, fontWeight: '900' },
+  drawerScroll: { zIndex: 1, paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.lg },
+  drawerGroup: { gap: spacing.sm },
+  groupTitle: {
     paddingHorizontal: spacing.sm,
     color: '#98A2B3',
     fontSize: 10,
@@ -710,9 +626,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  drawerGroupItems: {
-    gap: 4,
-  },
+  groupItems: { gap: 4 },
   drawerItem: {
     minHeight: 58,
     borderRadius: 18,
@@ -721,9 +635,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  drawerItemActive: {
-    backgroundColor: 'rgba(49,87,255,0.10)',
-  },
+  drawerItemActive: { backgroundColor: 'rgba(49,87,255,0.10)' },
   drawerIcon: {
     width: 40,
     height: 40,
@@ -732,28 +644,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.58)',
   },
-  drawerIconActive: {
-    backgroundColor: colors.brand,
-  },
-  drawerItemCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  drawerItemLabel: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  drawerItemLabelActive: {
-    color: colors.brandDark,
-    fontWeight: '900',
-  },
-  drawerItemDescription: {
-    color: colors.textMuted,
-    fontSize: 10,
-  },
+  drawerIconActive: { backgroundColor: colors.brand },
+  drawerItemCopy: { flex: 1, gap: 2 },
+  drawerItemLabel: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  drawerItemLabelActive: { color: colors.brandDark, fontWeight: '900' },
+  drawerDescription: { color: colors.textMuted, fontSize: 10 },
   drawerFooter: {
-    position: 'relative',
     zIndex: 1,
     marginHorizontal: spacing.md,
     paddingTop: spacing.sm,
@@ -769,21 +665,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  footerActionText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  logoutAction: {
-    backgroundColor: 'rgba(217,45,32,0.06)',
-  },
-  logoutText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  pressed: {
-    opacity: 0.68,
-    transform: [{ scale: 0.97 }],
-  },
+  footerActionText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  logoutAction: { backgroundColor: 'rgba(217,45,32,0.06)' },
+  logoutText: { color: colors.danger, fontSize: 12, fontWeight: '800' },
+  pressed: { opacity: 0.68, transform: [{ scale: 0.97 }] },
 });
