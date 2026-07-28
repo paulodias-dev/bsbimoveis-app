@@ -179,7 +179,7 @@ export function AddressStep({ onFeedback }: AddressStepProps) {
         </View>
         <View style={styles.mapShell}>
           <MapView
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             region={mapRegion}
             onRegionChangeComplete={setMapRegion}
           >
