@@ -31,6 +31,10 @@ export const radius = {
   pill: 999,
 } as const;
 
+export const layout = {
+  publicTabBarHeight: 68,
+} as const;
+
 export const shadow = {
   card: {
     shadowColor: '#101828',

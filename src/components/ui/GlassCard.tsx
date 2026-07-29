@@ -27,7 +27,6 @@ export function GlassCard({
       <BlurView
         intensity={intensity}
         tint="light"
-        blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
       <View style={[styles.tint, StyleSheet.absoluteFill]} />

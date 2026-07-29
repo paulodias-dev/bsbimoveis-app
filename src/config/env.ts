@@ -7,11 +7,15 @@ export type GoogleAuthMode = 'native' | 'authsession' | 'disabled';
 function normalizeGoogleAuthMode(value: string | undefined): GoogleAuthMode {
   const normalized = value?.trim().toLowerCase();
 
-  if (normalized === 'authsession' || normalized === 'disabled') {
+  if (
+    normalized === 'native' ||
+    normalized === 'authsession' ||
+    normalized === 'disabled'
+  ) {
     return normalized;
   }
 
-  return 'native';
+  return 'disabled';
 }
 
 export const env = {

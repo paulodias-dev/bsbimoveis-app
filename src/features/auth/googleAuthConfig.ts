@@ -51,12 +51,12 @@ export function isGoogleAuthAvailable(): boolean {
 
 export function getGoogleAuthNotice(): string | null {
   if (isGoogleAuthDisabledMode()) {
-    return 'Login com Google desativado via EXPO_PUBLIC_GOOGLE_AUTH_MODE=disabled.';
+    return 'Login com Google desativado via EXPO_PUBLIC_GOOGLE_AUTH_MODE=disabled. Use e-mail e senha para testar o restante do app.';
   }
 
   if (isGoogleNativeMode()) {
     if (isRunningInExpoGo()) {
-      return 'O SDK nativo do Google nao funciona no Expo Go. Use Development Build ou desative o Google no .env.';
+      return 'O SDK nativo do Google nao funciona no Expo Go. Para testar no Expo Go, use EXPO_PUBLIC_GOOGLE_AUTH_MODE=disabled e entre com e-mail e senha.';
     }
 
     if (!isGoogleNativeConfigured()) {
@@ -67,7 +67,7 @@ export function getGoogleAuthNotice(): string | null {
   }
 
   if (isRunningInExpoGo()) {
-    return 'O Expo Go nao suporta testes locais de OAuth com AuthSession. Use Development Build ou desative o Google no .env.';
+    return 'O Expo Go nao suporta testes locais de OAuth com AuthSession. Para usar Expo Go, deixe EXPO_PUBLIC_GOOGLE_AUTH_MODE=disabled e teste o restante do app com e-mail e senha.';
   }
 
   if (!isGoogleAuthSessionConfigured()) {

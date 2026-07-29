@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
-import { colors } from '@/theme/tokens';
+import { colors, layout } from '@/theme/tokens';
 
 function TabIcon({ value, focused }: { value: string; focused: boolean }) {
   return <Text style={[styles.icon, focused && styles.iconFocused]}>{value}</Text>;
@@ -58,7 +58,7 @@ export default function PublicTabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 68,
+    height: layout.publicTabBarHeight,
     paddingTop: 7,
     paddingBottom: 8,
     borderTopColor: colors.border,

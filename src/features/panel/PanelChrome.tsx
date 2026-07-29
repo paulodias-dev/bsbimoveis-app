@@ -100,7 +100,6 @@ export function PanelHeader() {
       <BlurView
         intensity={58}
         tint="light"
-        blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glassTint]} />
@@ -163,7 +162,6 @@ export function PanelBottomBar() {
       <BlurView
         intensity={72}
         tint="light"
-        blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.bottomTint]} />
@@ -266,7 +264,6 @@ export function PanelDrawer() {
           <BlurView
             intensity={86}
             tint="light"
-            blurMethod="dimezisBlurViewSdk31Plus"
             style={StyleSheet.absoluteFill}
           />
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.drawerTint]} />
