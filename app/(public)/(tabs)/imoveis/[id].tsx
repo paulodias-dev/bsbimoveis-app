@@ -25,6 +25,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { apiClient } from '@/services/apiClient';
 import { colors, radius, shadow, spacing } from '@/theme/tokens';
 import type {
+  Amenity,
   MessageResponse,
   Property,
   PropertyPhoto,
@@ -58,6 +59,41 @@ function currencyValue(value: number | null): string {
     currency: 'BRL',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function amenityIcon(name: string): keyof typeof Ionicons.glyphMap {
+  const normalized = name.trim().toLowerCase();
+
+  if (normalized.includes('piscina')) return 'water-outline';
+  if (normalized.includes('academia')) return 'barbell-outline';
+  if (normalized.includes('portaria') || normalized.includes('segurança')) {
+    return 'shield-checkmark-outline';
+  }
+  if (normalized.includes('elevador')) return 'swap-vertical-outline';
+  if (normalized.includes('ar condicionado')) return 'snow-outline';
+  if (normalized.includes('sauna')) return 'flame-outline';
+  if (normalized.includes('varanda')) return 'sunny-outline';
+  if (normalized.includes('playground')) return 'game-controller-outline';
+  if (normalized.includes('jardim')) return 'leaf-outline';
+  if (normalized.includes('festa') || normalized.includes('gourmet')) {
+    return 'wine-outline';
+  }
+  if (normalized.includes('churrasqueira')) return 'restaurant-outline';
+  if (normalized.includes('condomínio') || normalized.includes('fechado')) {
+    return 'business-outline';
+  }
+  if (normalized.includes('portão')) return 'key-outline';
+  return 'checkmark-circle-outline';
+}
+
+function groupAmenities(amenities: Amenity[]): Amenity[][] {
+  const rows: Amenity[][] = [];
+
+  for (let index = 0; index < amenities.length; index += 2) {
+    rows.push(amenities.slice(index, index + 2));
+  }
+
+  return rows;
 }
 
 function Gallery({
@@ -257,6 +293,10 @@ export default function PropertyDetailsScreen() {
       (photo, index) => source.findIndex((item) => item.url === photo.url) === index,
     );
   }, [property]);
+  const amenityRows = useMemo(
+    () => groupAmenities(property?.amenities ?? []),
+    [property?.amenities],
+  );
 
   async function toggleFavorite() {
     if (!property) return;
@@ -465,11 +505,23 @@ export default function PropertyDetailsScreen() {
       {property.amenities.length > 0 ? (
         <Card>
           <Text style={styles.sectionTitle}>Comodidades</Text>
-          <View style={styles.amenities}>
-            {property.amenities.map((amenity) => (
-              <Text key={amenity.id} style={styles.amenity}>
-                {amenity.name}
-              </Text>
+          <View style={styles.amenitiesGrid}>
+            {amenityRows.map((row, rowIndex) => (
+              <View key={`amenity-row-${rowIndex}`} style={styles.amenityRow}>
+                {row.map((amenity) => (
+                  <View key={amenity.id} style={styles.amenityCard}>
+                    <View style={styles.amenityIconShell}>
+                      <Ionicons
+                        name={amenityIcon(amenity.name)}
+                        size={18}
+                        color={colors.brandDark}
+                      />
+                    </View>
+                    <Text style={styles.amenityName}>{amenity.name}</Text>
+                  </View>
+                ))}
+                {row.length === 1 ? <View style={styles.amenitySpacer} /> : null}
+              </View>
             ))}
           </View>
         </Card>
@@ -773,18 +825,38 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
   },
-  amenities: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  amenitiesGrid: {
     gap: spacing.sm,
   },
-  amenity: {
-    borderRadius: radius.pill,
+  amenityRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  amenityCard: {
+    flex: 1,
+    minHeight: 84,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(49,87,255,0.08)',
+    backgroundColor: '#F8FAFF',
+  },
+  amenitySpacer: {
+    flex: 1,
+  },
+  amenityIconShell: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.brandSoft,
-    color: colors.brandDark,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 13,
-    fontWeight: '700',
+  },
+  amenityName: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
   },
 });

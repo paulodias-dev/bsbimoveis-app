@@ -1,21 +1,29 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { type Region } from 'react-native-maps';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { apiClient } from '@/services/apiClient';
-import { colors, radius, spacing } from '@/theme/tokens';
+import { colors, radius, shadow, spacing } from '@/theme/tokens';
 import type { PaginatedResponse, Property } from '@/types/api';
-import { formatCurrency } from '@/utils/format';
+import {
+  formatCurrency,
+  propertyLocation,
+  propertyPrice,
+  purposeLabel,
+} from '@/utils/format';
 
 const initialRegion: Region = {
   latitude: -15.793889,
@@ -36,11 +44,40 @@ function regionToBounds(region: Region) {
   };
 }
 
+function propertyNumericPrice(property: Property): number | null {
+  if (property.purpose === 'rent') return property.price_rent;
+  if (property.purpose === 'seasonal') return property.price_seasonal_daily;
+  return property.price_sale;
+}
+
+function formatMapPrice(value: number | null): string {
+  if (value === null || !Number.isFinite(Number(value))) {
+    return 'Consulte';
+  }
+
+  return formatCurrency(Number(value));
+}
+
+function imageUrl(property: Property): string | null {
+  return property.cover_photo?.url ?? property.photos?.[0]?.url ?? null;
+}
+
+function pinWidth(label: string): number {
+  return Math.max(84, Math.min(164, 26 + label.length * 8.5));
+}
+
 export default function MapScreen() {
+  const mapRef = useRef<MapView | null>(null);
   const [region, setRegion] = useState<Region>(initialRegion);
   const [mapRegion, setMapRegion] = useState<Region>(initialRegion);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+  const [pinPositions, setPinPositions] = useState<
+    Record<number, { x: number; y: number }>
+  >({});
 
   const queryString = useMemo(() => {
     const bounds = regionToBounds(region);
@@ -99,6 +136,75 @@ export default function MapScreen() {
       Number.isFinite(Number(property.longitude)),
   ) ?? [];
 
+  const selectedProperty =
+    properties.find((property) => property.id === selectedPropertyId) ?? null;
+
+  useEffect(() => {
+    if (selectedPropertyId === null) return;
+    if (!properties.some((property) => property.id === selectedPropertyId)) {
+      setSelectedPropertyId(null);
+    }
+  }, [properties, selectedPropertyId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function computePinPositions() {
+      if (!mapRef.current || !mapReady || mapSize.width === 0 || mapSize.height === 0) {
+        return;
+      }
+
+      const nextPositions: Record<number, { x: number; y: number }> = {};
+
+      for (const property of properties) {
+        try {
+          const point = await mapRef.current.pointForCoordinate({
+            latitude: Number(property.latitude),
+            longitude: Number(property.longitude),
+          });
+
+          if (cancelled) return;
+
+          const label = formatMapPrice(propertyNumericPrice(property));
+          const width = pinWidth(label);
+          const clampedX = Math.min(
+            Math.max(point.x, width / 2 + 6),
+            mapSize.width - width / 2 - 6,
+          );
+          const clampedY = Math.min(
+            Math.max(point.y, 22),
+            mapSize.height - 22,
+          );
+
+          nextPositions[property.id] = {
+            x: clampedX,
+            y: clampedY,
+          };
+        } catch {
+          // Ignore coordinates the native map can't project during camera transitions.
+        }
+      }
+
+      if (!cancelled) {
+        setPinPositions(nextPositions);
+      }
+    }
+
+    const timeoutId = setTimeout(() => {
+      void computePinPositions();
+    }, 60);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [mapReady, mapSize, properties, mapRegion]);
+
+  function handleMapLayout(event: LayoutChangeEvent) {
+    const { width, height } = event.nativeEvent.layout;
+    setMapSize({ width, height });
+  }
+
   return (
     <Screen scroll={false} contentStyle={styles.content}>
       <View style={styles.topbar}>
@@ -121,49 +227,57 @@ export default function MapScreen() {
 
       {locationError ? <Text style={styles.error}>{locationError}</Text> : null}
 
-      <View style={styles.mapShell}>
+      <View style={styles.mapShell} onLayout={handleMapLayout}>
         <MapView
+          ref={mapRef}
           style={StyleSheet.absoluteFill}
           initialRegion={initialRegion}
           region={mapRegion}
+          onMapReady={() => setMapReady(true)}
+          onPress={() => setSelectedPropertyId(null)}
           onRegionChangeComplete={(nextRegion) => {
             setMapRegion(nextRegion);
             setRegion(nextRegion);
           }}
           showsUserLocation
           showsMyLocationButton={false}
-        >
+        />
+
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           {properties.map((property) => {
-            const value =
-              property.purpose === 'rent'
-                ? property.price_rent
-                : property.purpose === 'seasonal'
-                  ? property.price_seasonal_daily
-                  : property.price_sale;
+            const point = pinPositions[property.id];
+
+            if (!point) return null;
+
+            const label = formatMapPrice(propertyNumericPrice(property));
+            const width = pinWidth(label);
+            const isSelected = property.id === selectedPropertyId;
 
             return (
-              <Marker
+              <Pressable
                 key={property.id}
-                coordinate={{
-                  latitude: Number(property.latitude),
-                  longitude: Number(property.longitude),
-                }}
-                onCalloutPress={() =>
-                  router.push({
-                    pathname: '/imoveis/[id]',
-                    params: { id: String(property.id) },
-                  })
-                }
-                title={property.title}
-                description="Toque para abrir os detalhes"
+                accessibilityRole="button"
+                accessibilityLabel={`Selecionar imóvel ${property.title}`}
+                onPress={() => setSelectedPropertyId(property.id)}
+                style={[
+                  styles.pinButton,
+                  {
+                    width,
+                    transform: [
+                      { translateX: point.x - width / 2 },
+                      { translateY: point.y - 18 },
+                    ],
+                  },
+                  isSelected && styles.pinButtonSelected,
+                ]}
               >
-                <View style={styles.marker}>
-                  <Text style={styles.markerText}>{formatCurrency(value)}</Text>
-                </View>
-              </Marker>
+                <Text style={[styles.pinText, isSelected && styles.pinTextSelected]}>
+                  {label}
+                </Text>
+              </Pressable>
             );
           })}
-        </MapView>
+        </View>
 
         {propertiesQuery.isLoading ? (
           <View style={styles.loadingOverlay}>
@@ -176,6 +290,68 @@ export default function MapScreen() {
             <Text style={styles.emptyTitle}>Nenhum anúncio nesta área</Text>
             <Text style={styles.emptyText}>Mova ou afaste o mapa para ampliar a busca.</Text>
           </View>
+        ) : null}
+
+        {selectedProperty ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              router.push({
+                pathname: '/imoveis/[id]',
+                params: { id: String(selectedProperty.id) },
+              })
+            }
+            style={({ pressed }) => [styles.previewCard, pressed && styles.pressed]}
+          >
+            {imageUrl(selectedProperty) ? (
+              <Image
+                source={{ uri: imageUrl(selectedProperty) || undefined }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.previewImage, styles.previewFallback]}>
+                <Text style={styles.previewFallbackText}>Sem foto</Text>
+              </View>
+            )}
+
+            <View style={styles.previewBody}>
+              <View style={styles.previewImageBadgeRow}>
+                <View style={styles.previewImageBadge}>
+                  <Ionicons name="sparkles" size={12} color={colors.white} />
+                  <Text style={styles.previewImageBadgeText}>Selecionado no mapa</Text>
+                </View>
+                <View style={styles.previewImagePricePill}>
+                  <Text style={styles.previewImagePriceText}>{propertyPrice(selectedProperty)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.previewTopline}>
+                <Text style={styles.previewBadge}>{purposeLabel(selectedProperty.purpose)}</Text>
+                <View style={styles.previewToplineDot} />
+              </View>
+
+              <Text style={styles.previewTitle} numberOfLines={2}>
+                {selectedProperty.title}
+              </Text>
+              <Text style={styles.previewLocation} numberOfLines={1}>
+                {propertyLocation(selectedProperty) || 'Localização não informada'}
+              </Text>
+
+              <View style={styles.previewSpecs}>
+                <Text style={styles.previewSpec}>{selectedProperty.bedrooms ?? 0} qts</Text>
+                <Text style={styles.previewSpec}>{selectedProperty.bathrooms ?? 0} banh</Text>
+                <Text style={styles.previewSpec}>
+                  {selectedProperty.area_useful ?? selectedProperty.area_total ?? 0} m²
+                </Text>
+              </View>
+
+              <View style={styles.previewCtaRow}>
+                <Text style={styles.previewCta}>Ver detalhes</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.brandDark} />
+              </View>
+            </View>
+          </Pressable>
         ) : null}
       </View>
 
@@ -228,18 +404,35 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surfaceAlt,
   },
-  marker: {
+  pinButton: {
+    position: 'absolute',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    backgroundColor: colors.mapMarker,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16,24,40,0.12)',
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 5,
   },
-  markerText: {
-    color: colors.white,
-    fontSize: 11,
+  pinButtonSelected: {
+    backgroundColor: colors.mapMarker,
+    borderColor: colors.mapMarker,
+  },
+  pinText: {
+    color: colors.text,
+    fontSize: 10,
     fontWeight: '900',
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  pinTextSelected: {
+    color: colors.white,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -253,9 +446,9 @@ const styles = StyleSheet.create({
   },
   empty: {
     position: 'absolute',
-    left: spacing.md,
     right: spacing.md,
     bottom: spacing.md,
+    left: spacing.md,
     borderRadius: radius.md,
     backgroundColor: 'rgba(255,255,255,0.94)',
     padding: spacing.md,
@@ -269,6 +462,136 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: spacing.xs,
   },
+  previewCard: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    left: spacing.md,
+    overflow: 'hidden',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.surface,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    elevation: 10,
+  },
+  previewImage: {
+    width: '100%',
+    height: 188,
+    backgroundColor: colors.surfaceAlt,
+  },
+  previewFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewFallbackText: {
+    color: colors.textMuted,
+    fontWeight: '700',
+  },
+  previewBody: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  previewImageBadgeRow: {
+    marginTop: -30,
+    marginBottom: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  previewImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
+    backgroundColor: colors.mapMarker,
+  },
+  previewImageBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  previewImagePricePill: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    backgroundColor: colors.white,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  previewImagePriceText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  previewTopline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  previewToplineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D0D5DD',
+  },
+  previewBadge: {
+    color: colors.brandDark,
+    backgroundColor: colors.brandSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  previewTitle: {
+    color: colors.text,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
+  },
+  previewLocation: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  previewSpecs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  previewSpec: {
+    color: colors.textMuted,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  previewCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(49,87,255,0.10)',
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brandSoft,
+  },
+  previewCta: {
+    color: colors.brandDark,
+    fontSize: 13,
+    fontWeight: '900',
+  },
   searchLink: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
@@ -278,6 +601,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   pressed: {
-    opacity: 0.65,
+    opacity: 0.88,
   },
 });
