@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PropertyCard } from '@/components/properties/PropertyCard';
 import { Button } from '@/components/ui/Button';
@@ -23,10 +23,33 @@ const purposes: Array<{ value: PropertyPurpose | ''; label: string }> = [
   { value: 'seasonal', label: 'Temporada' },
 ];
 
+function normalizePurpose(value: string | undefined): PropertyPurpose | '' {
+  if (value === 'sale' || value === 'rent' || value === 'seasonal') {
+    return value;
+  }
+
+  return '';
+}
+
 export default function SearchScreen() {
-  const [city, setCity] = useState('');
-  const [purpose, setPurpose] = useState<PropertyPurpose | ''>('');
-  const [applied, setApplied] = useState({ city: '', purpose: '' });
+  const params = useLocalSearchParams<{ city?: string; purpose?: string }>();
+  const initialCity = params.city?.trim() ?? '';
+  const initialPurpose = normalizePurpose(params.purpose);
+  const [city, setCity] = useState(initialCity);
+  const [purpose, setPurpose] = useState<PropertyPurpose | ''>(initialPurpose);
+  const [applied, setApplied] = useState({
+    city: initialCity,
+    purpose: initialPurpose,
+  });
+
+  useEffect(() => {
+    const nextCity = params.city?.trim() ?? '';
+    const nextPurpose = normalizePurpose(params.purpose);
+
+    setCity(nextCity);
+    setPurpose(nextPurpose);
+    setApplied({ city: nextCity, purpose: nextPurpose });
+  }, [params.city, params.purpose]);
 
   const searchQuery = useQuery({
     queryKey: ['properties', applied],
