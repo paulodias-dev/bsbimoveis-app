@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -98,7 +99,7 @@ export default function LoginScreen() {
 
       <Card>
         <View style={styles.form}>
-          {isGoogleAuthSessionMode() ? (
+          {isGoogleAuthSessionMode() && googleEnabled ? (
             <GoogleAuthSessionButton
               disabled={!googleEnabled}
               loading={isGoogleSubmitting}
@@ -147,13 +148,13 @@ export default function LoginScreen() {
             control={control}
             name="password"
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextField
+              <PasswordField
                 label="Senha"
                 value={value}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                secureTextEntry
                 autoComplete="current-password"
+                textContentType="password"
                 error={errors.password?.message}
               />
             )}

@@ -1,13 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
   type TextInputProps,
 } from 'react-native';
 import { colors, radius, spacing } from '@/theme/tokens';
+import { Text } from 'react-native';
 
 interface PasswordFieldProps extends Omit<TextInputProps, 'secureTextEntry'> {
   label: string;
@@ -43,7 +44,11 @@ export function PasswordField({
           hitSlop={8}
           style={styles.toggle}
         >
-          <Text style={styles.toggleText}>{visible ? 'Ocultar' : 'Mostrar'}</Text>
+          <Ionicons
+            name={visible ? 'eye-off-outline' : 'eye-outline'}
+            size={18}
+            color={colors.brand}
+          />
         </Pressable>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -73,11 +78,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   toggle: {
+    width: 48,
     minHeight: 48,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
   },
-  toggleText: { color: colors.brand, fontSize: 12, fontWeight: '800' },
   error: { color: colors.danger, fontSize: 12 },
   hint: { color: colors.textMuted, fontSize: 12 },
 });
