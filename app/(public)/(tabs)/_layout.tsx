@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, layout } from '@/theme/tokens';
 
 function TabIcon({ value, focused }: { value: string; focused: boolean }) {
@@ -7,13 +8,21 @@ function TabIcon({ value, focused }: { value: string; focused: boolean }) {
 }
 
 export default function PublicTabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: layout.publicTabBarHeight + Math.max(insets.bottom, 8),
+            paddingBottom: Math.max(insets.bottom, 8),
+          },
+        ],
         tabBarLabelStyle: styles.label,
       }}
     >
@@ -52,15 +61,20 @@ export default function PublicTabsLayout() {
           tabBarIcon: ({ focused }) => <TabIcon value="◎" focused={focused} />,
         }}
       />
+      <Tabs.Screen
+        name="imoveis/[id]"
+        options={{
+          href: null,
+          title: 'Detalhes do imóvel',
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: layout.publicTabBarHeight,
     paddingTop: 7,
-    paddingBottom: 8,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },

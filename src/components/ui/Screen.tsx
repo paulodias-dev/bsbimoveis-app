@@ -38,6 +38,7 @@ export function Screen({
     pathname === '/ver-no-mapa' ||
     pathname === '/favoritos' ||
     pathname === '/conta';
+  const isPublicDetails = pathname.startsWith('/imoveis/');
   const edges: Edge[] = isPanel ? ['left', 'right'] : ['top', 'left', 'right'];
   const publicTabSpacing = {
     paddingBottom: layout.publicTabBarHeight + insets.bottom,
@@ -48,7 +49,7 @@ export function Screen({
       style={[
         styles.content,
         isPanel && styles.panelContent,
-        scroll && isPublicTab && publicTabSpacing,
+        scroll && (isPublicTab || isPublicDetails) && publicTabSpacing,
         contentStyle,
       ]}
     >
