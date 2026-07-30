@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { usePathname } from 'expo-router';
 import { useState } from 'react';
 import {
   Pressable,
@@ -23,12 +24,14 @@ export function PasswordField({
   style,
   ...props
 }: PasswordFieldProps) {
+  const pathname = usePathname();
+  const isPanel = pathname.startsWith('/painel');
   const [visible, setVisible] = useState(false);
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.field, error && styles.fieldError]}>
+      <Text style={[styles.label, isPanel && styles.panelLabel]}>{label}</Text>
+      <View style={[styles.field, isPanel && styles.panelField, error && styles.fieldError]}>
         <TextInput
           {...props}
           secureTextEntry={!visible}
@@ -60,6 +63,7 @@ export function PasswordField({
 const styles = StyleSheet.create({
   wrapper: { gap: spacing.xs },
   label: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  panelLabel: { fontSize: 13, fontWeight: '800' },
   field: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -68,6 +72,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  panelField: {
+    minHeight: 52,
+    borderRadius: 18,
+    borderColor: '#E4EAF3',
+    backgroundColor: '#FBFCFE',
   },
   fieldError: { borderColor: colors.danger },
   input: {

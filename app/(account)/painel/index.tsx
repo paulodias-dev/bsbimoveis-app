@@ -15,7 +15,7 @@ import { Screen } from '@/components/ui/Screen';
 import { StateView } from '@/components/ui/StateView';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { usePainelStore } from '@/stores/usePainelStore';
-import { colors, radius, spacing } from '@/theme/tokens';
+import { colors, radius, shadow, spacing } from '@/theme/tokens';
 import type { Property } from '@/types/api';
 
 function greeting(): string {
@@ -529,8 +529,13 @@ function RecentProperty({ property }: { property: Property }) {
 
 const styles = StyleSheet.create({
   heroCard: {
-    backgroundColor: 'rgba(19,39,86,0.88)',
-    borderColor: 'rgba(255,255,255,0.30)',
+    borderColor: '#1E3C71',
+    backgroundColor: '#10284D',
+    shadowColor: '#10284D',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.2,
+    shadowRadius: 26,
+    elevation: 8,
   },
   heroGlow: {
     position: 'absolute',
@@ -539,7 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: 105,
     right: -75,
     top: -105,
-    backgroundColor: 'rgba(91,124,255,0.42)',
+    backgroundColor: 'rgba(91,124,255,0.28)',
   },
   heroTopline: {
     flexDirection: 'row',
@@ -554,7 +559,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.13)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   liveDot: {
     width: 7,
@@ -613,8 +618,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
   errorCard: {
-    backgroundColor: 'rgba(254,243,242,0.82)',
-    borderColor: 'rgba(253,162,155,0.72)',
+    backgroundColor: '#FFF7F5',
+    borderColor: '#F7C9C2',
   },
   errorRow: {
     flexDirection: 'row',
@@ -639,14 +644,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   sectionEyebrow: {
-    color: colors.brand,
-    fontSize: 9,
+    color: colors.brandDark,
+    fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '900',
     marginTop: 3,
   },
@@ -666,6 +671,8 @@ const styles = StyleSheet.create({
   metricCard: {
     width: '48%',
     minHeight: 142,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7ECF3',
   },
   metricTopline: {
     flexDirection: 'row',
@@ -704,16 +711,16 @@ const styles = StyleSheet.create({
   quickAction: {
     width: '48%',
     minHeight: 142,
-    overflow: 'hidden',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.80)',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
     padding: spacing.md,
+    ...shadow.card,
   },
   quickActionPrimary: {
-    borderColor: colors.brand,
-    backgroundColor: colors.brand,
+    borderColor: '#1E3C71',
+    backgroundColor: '#17356A',
   },
   quickIcon: {
     width: 42,
@@ -755,7 +762,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
   },
   planBadgeText: { color: colors.brandDark, fontSize: 10, fontWeight: '900' },
-  planCard: { backgroundColor: 'rgba(255,255,255,0.62)' },
+  planCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7ECF3',
+  },
   planTopline: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   planIcon: {
     width: 48,
@@ -831,7 +841,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(228,231,236,0.72)',
+    backgroundColor: '#F3F5F9',
   },
   propertyImage: { width: '100%', height: '100%' },
   propertyCopy: { flex: 1, gap: 4 },

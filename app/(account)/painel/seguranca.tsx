@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { Screen } from '@/components/ui/Screen';
+import { getBiometricLoginLabel } from '@/features/auth/biometricAuth';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { updatePassword } from '@/features/profile/profileService';
 import { colors, spacing } from '@/theme/tokens';
 
@@ -26,7 +28,14 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 type Feedback = { message: string; tone: 'success' | 'error' };
 
 export default function SecurityScreen() {
+  const {
+    biometricLoginAvailable,
+    biometricLoginEnabled,
+    biometricLoginEmail,
+    disableBiometricLogin,
+  } = useAuth();
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const biometricLabel = getBiometricLoginLabel();
   const {
     control,
     handleSubmit,
@@ -45,9 +54,16 @@ export default function SecurityScreen() {
     setFeedback(null);
     try {
       const response = await updatePassword(values);
+      if (biometricLoginEnabled) {
+        await disableBiometricLogin();
+      }
       reset();
       setFeedback({
-        message: response.message ?? 'Senha alterada com sucesso.',
+        message:
+          response.message ??
+          (biometricLoginEnabled
+            ? 'Senha alterada com sucesso. O acesso biométrico foi removido e pode ser configurado novamente no próximo login.'
+            : 'Senha alterada com sucesso.'),
         tone: 'success',
       });
     } catch (error) {
@@ -73,6 +89,24 @@ export default function SecurityScreen() {
           </Text>
         </Card>
       ) : null}
+
+      <Card style={styles.card}>
+        <Text style={styles.title}>Acesso biométrico</Text>
+        <Text style={styles.description}>
+          {biometricLoginEnabled
+            ? `Seu aparelho possui um acesso salvo com ${biometricLabel} para ${biometricLoginEmail}.`
+            : biometricLoginAvailable
+              ? `Você ainda não ativou o acesso com ${biometricLabel}. Ele pode ser habilitado ao entrar com e-mail e senha.`
+              : 'A biometria não está disponível neste ambiente ou neste aparelho.'}
+        </Text>
+        {biometricLoginEnabled ? (
+          <Button
+            label="Remover acesso biométrico"
+            variant="secondary"
+            onPress={() => void disableBiometricLogin()}
+          />
+        ) : null}
+      </Card>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Alterar senha</Text>

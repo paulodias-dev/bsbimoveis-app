@@ -69,7 +69,7 @@ export function AvatarEditor({ profile, onUpdated, onFeedback }: AvatarEditorPro
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md, alignItems: 'center' },
+  card: { gap: spacing.md, alignItems: 'center', paddingVertical: spacing.xl },
   avatarShell: {
     width: 112,
     height: 112,
@@ -78,12 +78,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
   },
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: colors.brandDark, fontSize: 32, fontWeight: '900' },
   copy: { alignItems: 'center', gap: spacing.xs },
-  name: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  name: { color: colors.text, fontSize: 20, fontWeight: '900' },
   email: { color: colors.textMuted, fontSize: 13 },
-  hint: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
+  hint: { color: colors.textMuted, fontSize: 11, textAlign: 'center', lineHeight: 17 },
   button: { alignSelf: 'stretch' },
 });

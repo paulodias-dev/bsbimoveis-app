@@ -43,6 +43,6 @@ export default function PanelLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#F6F8FC',
   },
 });

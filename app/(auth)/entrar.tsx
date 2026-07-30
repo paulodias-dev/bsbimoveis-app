@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,6 +11,10 @@ import { PasswordField } from '@/components/ui/PasswordField';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
+import {
+  getBiometricLoginLabel,
+  getBiometricLoginNotice,
+} from '@/features/auth/biometricAuth';
 import { GoogleAuthSessionButton } from '@/features/auth/GoogleAuthSessionButton';
 import {
   getGoogleAuthNotice,
@@ -30,11 +34,24 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function LoginScreen() {
-  const { login, socialLogin, isAuthenticated } = useAuth();
+  const {
+    login,
+    loginWithBiometrics,
+    socialLogin,
+    isAuthenticated,
+    biometricLoginAvailable,
+    biometricLoginEnabled,
+    biometricLoginEmail,
+    disableBiometricLogin,
+  } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [useBiometricLogin, setUseBiometricLogin] = useState(false);
+  const [isBiometricSubmitting, setIsBiometricSubmitting] = useState(false);
   const googleEnabled = isGoogleAuthAvailable();
   const googleNotice = getGoogleAuthNotice();
+  const biometricLabel = getBiometricLoginLabel();
+  const biometricNotice = getBiometricLoginNotice();
 
   const {
     control,
@@ -54,12 +71,28 @@ export default function LoginScreen() {
   const submit = handleSubmit(async (values) => {
     setMessage(null);
     try {
-      await login(values.email, values.password);
+      await login(values.email, values.password, {
+        enableBiometric: useBiometricLogin,
+      });
       router.replace('/painel');
     } catch (error) {
       setMessage(getErrorMessage(error, 'Não foi possível entrar na conta.'));
     }
   });
+
+  async function handleBiometricLogin() {
+    setIsBiometricSubmitting(true);
+    setMessage(null);
+
+    try {
+      await loginWithBiometrics();
+      router.replace('/painel');
+    } catch (error) {
+      setMessage(getErrorMessage(error, 'Não foi possível entrar com biometria.'));
+    } finally {
+      setIsBiometricSubmitting(false);
+    }
+  }
 
   async function completeGoogleLogin(accessToken: string) {
     try {
@@ -99,6 +132,29 @@ export default function LoginScreen() {
 
       <Card>
         <View style={styles.form}>
+          {biometricLoginEnabled ? (
+            <View style={styles.biometricCard}>
+              <Text style={styles.biometricTitle}>Acesso rápido com {biometricLabel}</Text>
+              <Text style={styles.biometricDescription}>
+                Entre sem digitar a senha usando o acesso salvo para {biometricLoginEmail}.
+              </Text>
+              <Button
+                label={
+                  isBiometricSubmitting
+                    ? `Validando ${biometricLabel}...`
+                    : `Entrar com ${biometricLabel}`
+                }
+                loading={isBiometricSubmitting}
+                onPress={() => void handleBiometricLogin()}
+              />
+              <Button
+                label="Remover acesso biométrico deste aparelho"
+                variant="secondary"
+                onPress={() => void disableBiometricLogin()}
+              />
+            </View>
+          ) : null}
+
           {isGoogleAuthSessionMode() && googleEnabled ? (
             <GoogleAuthSessionButton
               disabled={!googleEnabled}
@@ -123,6 +179,10 @@ export default function LoginScreen() {
             <Text style={styles.configurationNotice}>
               {googleNotice}
             </Text>
+          ) : null}
+
+          {biometricNotice && !biometricLoginEnabled ? (
+            <Text style={styles.configurationNotice}>{biometricNotice}</Text>
           ) : null}
 
           <Text style={styles.divider}>ou continue com e-mail</Text>
@@ -159,6 +219,22 @@ export default function LoginScreen() {
               />
             )}
           />
+
+          {biometricLoginAvailable ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: useBiometricLogin }}
+              onPress={() => setUseBiometricLogin((current) => !current)}
+              style={styles.terms}
+            >
+              <View style={[styles.checkbox, useBiometricLogin && styles.checkboxChecked]}>
+                {useBiometricLogin ? <Text style={styles.check}>✓</Text> : null}
+              </View>
+              <Text style={styles.termsText}>
+                Salvar senha com {biometricLabel} neste aparelho para os próximos acessos.
+              </Text>
+            </Pressable>
+          ) : null}
 
           {message ? <Text style={styles.error}>{message}</Text> : null}
 
@@ -205,10 +281,56 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
+  biometricCard: {
+    gap: spacing.sm,
+    borderRadius: 20,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#D8E4FF',
+    backgroundColor: '#F7FAFF',
+  },
+  biometricTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  biometricDescription: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
   error: {
     color: colors.danger,
     fontSize: 13,
     fontWeight: '600',
+  },
+  terms: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    borderColor: colors.brand,
+    backgroundColor: colors.brand,
+  },
+  check: {
+    color: colors.white,
+    fontWeight: '900',
+  },
+  termsText: {
+    flex: 1,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
   },
   footer: {
     gap: spacing.md,

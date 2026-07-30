@@ -40,7 +40,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
-    'expo-secure-store',
+    [
+      'expo-secure-store',
+      {
+        faceIDPermission:
+          'A BSB Imóveis usa o Face ID para liberar seu acesso biométrico neste aparelho.',
+      },
+    ],
     ...(resolveGoogleAuthMode(process.env.EXPO_PUBLIC_GOOGLE_AUTH_MODE) === 'native'
       ? [
           [

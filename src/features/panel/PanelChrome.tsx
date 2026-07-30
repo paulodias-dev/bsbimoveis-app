@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { router, usePathname } from 'expo-router';
 import {
   createContext,
@@ -82,7 +81,6 @@ export function PanelBackground() {
       <View style={styles.orbTop} />
       <View style={styles.orbMiddle} />
       <View style={styles.orbBottom} />
-      <View style={styles.backgroundWash} />
     </View>
   );
 }
@@ -97,12 +95,6 @@ export function PanelHeader() {
 
   return (
     <View style={[styles.headerShell, { paddingTop: insets.top + 6 }]}>
-      <BlurView
-        intensity={58}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glassTint]} />
       <View style={styles.headerContent}>
         <View style={styles.headerLeft}>
           {!isDashboard ? (
@@ -115,6 +107,7 @@ export function PanelHeader() {
               <Ionicons name="chevron-back" size={22} color={colors.text} />
             </Pressable>
           ) : null}
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Abrir menu"
@@ -159,12 +152,6 @@ export function PanelBottomBar() {
 
   return (
     <View style={[styles.bottomShell, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <BlurView
-        intensity={72}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.bottomTint]} />
       <View style={styles.bottomContent}>
         {bottomNavigationItems.map((item, index) => {
           const active = isPanelRouteActive(pathname, item);
@@ -261,13 +248,6 @@ export function PanelDrawer() {
             },
           ]}
         >
-          <BlurView
-            intensity={86}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-          />
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.drawerTint]} />
-
           <View style={styles.drawerTopbar}>
             <View style={styles.brandRow}>
               <View style={styles.brandMark}>
@@ -278,6 +258,7 @@ export function PanelDrawer() {
                 <Text style={styles.brandCaption}>Painel do anunciante</Text>
               </View>
             </View>
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Fechar menu"
@@ -296,9 +277,14 @@ export function PanelDrawer() {
                 <Text style={styles.drawerAvatarText}>{initials(user?.name ?? 'U')}</Text>
               )}
             </View>
+
             <View style={styles.profileCopy}>
-              <Text style={styles.profileName} numberOfLines={1}>{user?.name ?? 'Usuário'}</Text>
-              <Text style={styles.profileEmail} numberOfLines={1}>{user?.email ?? ''}</Text>
+              <Text style={styles.profileName} numberOfLines={1}>
+                {user?.name ?? 'Usuário'}
+              </Text>
+              <Text style={styles.profileEmail} numberOfLines={1}>
+                {user?.email ?? ''}
+              </Text>
               <View style={styles.accountBadge}>
                 <Ionicons name="sparkles" size={11} color={colors.brandDark} />
                 <Text style={styles.accountBadgeText}>Conta ativa</Text>
@@ -316,6 +302,7 @@ export function PanelDrawer() {
                 <View style={styles.groupItems}>
                   {group.items.map((item) => {
                     const active = isPanelRouteActive(pathname, item);
+
                     return (
                       <Pressable
                         key={item.label}
@@ -336,7 +323,12 @@ export function PanelDrawer() {
                           />
                         </View>
                         <View style={styles.drawerItemCopy}>
-                          <Text style={[styles.drawerItemLabel, active && styles.drawerItemLabelActive]}>
+                          <Text
+                            style={[
+                              styles.drawerItemLabel,
+                              active && styles.drawerItemLabelActive,
+                            ]}
+                          >
                             {item.label}
                           </Text>
                           {item.description ? (
@@ -367,7 +359,11 @@ export function PanelDrawer() {
             <Pressable
               accessibilityRole="button"
               onPress={() => void signOut()}
-              style={({ pressed }) => [styles.footerAction, styles.logoutAction, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.footerAction,
+                styles.logoutAction,
+                pressed && styles.pressed,
+              ]}
             >
               <Ionicons name="log-out-outline" size={20} color={colors.danger} />
               <Text style={styles.logoutText}>Sair da conta</Text>
@@ -386,60 +382,54 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#EEF2FF',
-  },
-  backgroundWash: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(248,250,255,0.34)',
+    backgroundColor: '#F6F8FC',
   },
   orbTop: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    top: -145,
-    right: -95,
-    backgroundColor: 'rgba(93,120,255,0.25)',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    top: -120,
+    right: -90,
+    backgroundColor: 'rgba(49,87,255,0.10)',
   },
   orbMiddle: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    top: '35%',
-    left: -150,
-    backgroundColor: 'rgba(107,227,214,0.20)',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    top: '42%',
+    left: -120,
+    backgroundColor: 'rgba(99,102,241,0.06)',
   },
   orbBottom: {
     position: 'absolute',
-    width: 330,
-    height: 330,
-    borderRadius: 165,
-    bottom: -190,
-    right: -130,
-    backgroundColor: 'rgba(170,132,255,0.18)',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    bottom: -180,
+    right: -140,
+    backgroundColor: 'rgba(34,197,94,0.05)',
   },
-  glassTint: { backgroundColor: 'rgba(255,255,255,0.20)' },
   headerShell: {
     minHeight: 84,
-    overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.50)',
+    borderBottomColor: '#E8EDF5',
+    backgroundColor: '#F8FAFD',
   },
   headerContent: {
-    minHeight: 66,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    minHeight: 68,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  headerLeft: { minWidth: 48, flexDirection: 'row', gap: 4 },
+  headerLeft: {
+    minWidth: 48,
+    flexDirection: 'row',
+    gap: 4,
+  },
   roundButton: {
     width: 42,
     height: 42,
@@ -447,12 +437,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.88)',
-    backgroundColor: 'rgba(255,255,255,0.54)',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
+    ...shadow.card,
   },
-  headerTitleArea: { flex: 1, alignItems: 'center', gap: 2 },
-  headerEyebrow: { color: colors.brand, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-  headerTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  headerTitleArea: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerEyebrow: {
+    color: colors.brandDark,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.6,
+  },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
   headerAvatar: {
     width: 43,
     height: 43,
@@ -460,12 +464,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.94)',
-    backgroundColor: colors.brandSoft,
+    borderColor: '#FFFFFF',
+    backgroundColor: '#E9EEFF',
     ...shadow.card,
   },
-  avatarImage: { width: '100%', height: '100%', borderRadius: radius.pill },
-  avatarText: { color: colors.brandDark, fontSize: 13, fontWeight: '900' },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.pill,
+  },
+  avatarText: {
+    color: colors.brandDark,
+    fontSize: 13,
+    fontWeight: '900',
+  },
   onlineDot: {
     position: 'absolute',
     right: -1,
@@ -478,13 +490,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#12B76A',
   },
   bottomShell: {
-    overflow: 'hidden',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.85)',
-    backgroundColor: 'rgba(255,255,255,0.56)',
+    borderTopColor: '#E7ECF3',
+    backgroundColor: 'rgba(255,255,255,0.98)',
     ...shadow.card,
   },
-  bottomTint: { backgroundColor: 'rgba(255,255,255,0.18)' },
   bottomContent: {
     minHeight: 68,
     paddingHorizontal: spacing.sm,
@@ -500,10 +510,24 @@ const styles = StyleSheet.create({
     gap: 3,
     borderRadius: radius.md,
   },
-  bottomItemActive: { backgroundColor: 'rgba(49,87,255,0.08)' },
-  bottomLabel: { color: '#7A8499', fontSize: 10, fontWeight: '700' },
-  bottomLabelActive: { color: colors.brandDark, fontWeight: '900' },
-  centerSlot: { flex: 1, minHeight: 74, alignItems: 'center', marginTop: -22 },
+  bottomItemActive: {
+    backgroundColor: '#EEF3FF',
+  },
+  bottomLabel: {
+    color: '#7A8499',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  bottomLabelActive: {
+    color: colors.brandDark,
+    fontWeight: '900',
+  },
+  centerSlot: {
+    flex: 1,
+    minHeight: 74,
+    alignItems: 'center',
+    marginTop: -22,
+  },
   centerButton: {
     width: 57,
     height: 57,
@@ -511,50 +535,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.94)',
+    borderColor: '#FFFFFF',
     backgroundColor: colors.brand,
     shadowColor: colors.brand,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.30,
+    shadowOpacity: 0.3,
     shadowRadius: 18,
     elevation: 8,
   },
-  centerLabel: { color: colors.brandDark, fontSize: 10, fontWeight: '900', marginTop: 2 },
-  modalRoot: { flex: 1, flexDirection: 'row' },
+  centerLabel: {
+    color: colors.brandDark,
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  modalRoot: {
+    flex: 1,
+    flexDirection: 'row',
+  },
   drawerBackdrop: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(9,17,38,0.42)',
+    backgroundColor: 'rgba(9,17,38,0.38)',
   },
   drawerShell: {
     width: '87%',
     maxWidth: 374,
     height: '100%',
-    overflow: 'hidden',
     borderTopRightRadius: 34,
     borderBottomRightRadius: 34,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(248,250,255,0.84)',
+    borderRightColor: '#E8EDF5',
+    backgroundColor: '#F8FAFD',
     shadowColor: '#101828',
     shadowOffset: { width: 18, height: 0 },
     shadowOpacity: 0.22,
     shadowRadius: 30,
     elevation: 18,
   },
-  drawerTint: { backgroundColor: 'rgba(255,255,255,0.20)' },
   drawerTopbar: {
-    zIndex: 1,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   brandMark: {
     width: 38,
     height: 38,
@@ -563,8 +596,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.brand,
   },
-  brandName: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  brandCaption: { color: colors.textMuted, fontSize: 10 },
+  brandName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  brandCaption: {
+    color: colors.textMuted,
+    fontSize: 10,
+  },
   closeButton: {
     width: 40,
     height: 40,
@@ -572,11 +612,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.90)',
-    backgroundColor: 'rgba(255,255,255,0.52)',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
   },
   profileCard: {
-    zIndex: 1,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
     padding: spacing.md,
@@ -585,8 +624,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.86)',
-    backgroundColor: 'rgba(255,255,255,0.48)',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
+    ...shadow.card,
   },
   drawerAvatar: {
     width: 58,
@@ -597,10 +637,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.brandSoft,
   },
-  drawerAvatarText: { color: colors.brandDark, fontSize: 18, fontWeight: '900' },
-  profileCopy: { flex: 1, gap: 3 },
-  profileName: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  profileEmail: { color: colors.textMuted, fontSize: 11 },
+  drawerAvatarText: {
+    color: colors.brandDark,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  profileCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  profileName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  profileEmail: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
   accountBadge: {
     alignSelf: 'flex-start',
     marginTop: 3,
@@ -612,9 +666,19 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: colors.brandSoft,
   },
-  accountBadgeText: { color: colors.brandDark, fontSize: 9, fontWeight: '900' },
-  drawerScroll: { zIndex: 1, paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.lg },
-  drawerGroup: { gap: spacing.sm },
+  accountBadgeText: {
+    color: colors.brandDark,
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  drawerScroll: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.lg,
+  },
+  drawerGroup: {
+    gap: spacing.sm,
+  },
   groupTitle: {
     paddingHorizontal: spacing.sm,
     color: '#98A2B3',
@@ -623,7 +687,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  groupItems: { gap: 4 },
+  groupItems: {
+    gap: 4,
+  },
   drawerItem: {
     minHeight: 58,
     borderRadius: 18,
@@ -632,26 +698,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  drawerItemActive: { backgroundColor: 'rgba(49,87,255,0.10)' },
+  drawerItemActive: {
+    backgroundColor: '#EEF3FF',
+  },
   drawerIcon: {
     width: 40,
     height: 40,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: '#F4F6FB',
   },
-  drawerIconActive: { backgroundColor: colors.brand },
-  drawerItemCopy: { flex: 1, gap: 2 },
-  drawerItemLabel: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  drawerItemLabelActive: { color: colors.brandDark, fontWeight: '900' },
-  drawerDescription: { color: colors.textMuted, fontSize: 10 },
+  drawerIconActive: {
+    backgroundColor: colors.brand,
+  },
+  drawerItemCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  drawerItemLabel: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  drawerItemLabelActive: {
+    color: colors.brandDark,
+    fontWeight: '900',
+  },
+  drawerDescription: {
+    color: colors.textMuted,
+    fontSize: 10,
+  },
   drawerFooter: {
-    zIndex: 1,
     marginHorizontal: spacing.md,
     paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(152,162,179,0.30)',
+    borderTopColor: 'rgba(152,162,179,0.24)',
     gap: 4,
   },
   footerAction: {
@@ -662,8 +744,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  footerActionText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  logoutAction: { backgroundColor: 'rgba(217,45,32,0.06)' },
-  logoutText: { color: colors.danger, fontSize: 12, fontWeight: '800' },
-  pressed: { opacity: 0.68, transform: [{ scale: 0.97 }] },
+  footerActionText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  logoutAction: {
+    backgroundColor: 'rgba(217,45,32,0.06)',
+  },
+  logoutText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.98 }],
+  },
 });

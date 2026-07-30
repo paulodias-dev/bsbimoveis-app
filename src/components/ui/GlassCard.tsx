@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import type { PropsWithChildren } from 'react';
 import {
   StyleSheet,
@@ -24,12 +23,6 @@ export function GlassCard({
 }: GlassCardProps) {
   return (
     <View style={[styles.shell, style]}>
-      <BlurView
-        intensity={intensity}
-        tint="light"
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[styles.tint, StyleSheet.absoluteFill]} />
       <View style={[styles.content, { padding }, contentStyle]}>{children}</View>
     </View>
   );
@@ -37,18 +30,13 @@ export function GlassCard({
 
 const styles = StyleSheet.create({
   shell: {
-    overflow: 'hidden',
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.48)',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
     ...shadow.card,
-  },
-  tint: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   content: {
     position: 'relative',
-    zIndex: 1,
   },
 });

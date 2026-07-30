@@ -26,12 +26,12 @@ const styles = StyleSheet.create({
   panelCard: {
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.78)',
-    backgroundColor: 'rgba(255,255,255,0.64)',
-    shadowColor: '#344054',
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.10,
-    shadowRadius: 24,
+    shadowOpacity: 0.07,
+    shadowRadius: 22,
     elevation: 4,
   },
 });

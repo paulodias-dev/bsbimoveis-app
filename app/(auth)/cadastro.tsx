@@ -16,6 +16,11 @@ import { PasswordField } from '@/components/ui/PasswordField';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
+import {
+  isBiometricLoginAvailable,
+  getBiometricLoginLabel,
+  getBiometricLoginNotice,
+} from '@/features/auth/biometricAuth';
 import { GoogleAuthSessionButton } from '@/features/auth/GoogleAuthSessionButton';
 import {
   getGoogleAuthNotice,
@@ -57,8 +62,12 @@ export default function RegisterScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [useBiometricLogin, setUseBiometricLogin] = useState(false);
   const googleEnabled = isGoogleAuthAvailable();
   const googleNotice = getGoogleAuthNotice();
+  const biometricLoginAvailable = isBiometricLoginAvailable();
+  const biometricLabel = getBiometricLoginLabel();
+  const biometricNotice = getBiometricLoginNotice();
 
   const {
     control,
@@ -94,6 +103,8 @@ export default function RegisterScreen() {
         password: values.password,
         terms_accepted: true,
         document_version: 1,
+      }, {
+        enableBiometric: useBiometricLogin,
       });
       router.replace('/painel');
     } catch (error) {
@@ -161,6 +172,10 @@ export default function RegisterScreen() {
 
           {googleNotice ? (
             <Text style={styles.configurationNotice}>{googleNotice}</Text>
+          ) : null}
+
+          {biometricNotice && !biometricLoginAvailable ? (
+            <Text style={styles.configurationNotice}>{biometricNotice}</Text>
           ) : null}
 
           <Text style={styles.divider}>ou continue com e-mail</Text>
@@ -279,6 +294,22 @@ export default function RegisterScreen() {
               />
             )}
           />
+
+          {biometricLoginAvailable ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: useBiometricLogin }}
+              onPress={() => setUseBiometricLogin((current) => !current)}
+              style={styles.terms}
+            >
+              <View style={[styles.checkbox, useBiometricLogin && styles.checkboxChecked]}>
+                {useBiometricLogin ? <Text style={styles.check}>✓</Text> : null}
+              </View>
+              <Text style={styles.termsText}>
+                Salvar senha com {biometricLabel} neste aparelho para os próximos acessos.
+              </Text>
+            </Pressable>
+          ) : null}
 
           <Pressable
             accessibilityRole="checkbox"

@@ -149,6 +149,6 @@ export function ProfileForm({ profile, onUpdated, onFeedback }: ProfileFormProps
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  title: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  title: { color: colors.text, fontSize: 18, fontWeight: '900' },
   bioInput: { minHeight: 130, paddingTop: spacing.md },
 });

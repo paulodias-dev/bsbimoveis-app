@@ -9,9 +9,17 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { apiClient, configureApiClient } from '@/services/apiClient';
+import { isBiometricLoginAvailable } from '@/features/auth/biometricAuth';
 import { signOutGoogle } from '@/features/auth/googleSignIn';
 import { usePainelStore } from '@/stores/usePainelStore';
-import { readSecureSession, writeSecureSession } from '@/services/authStorage';
+import {
+  clearBiometricCredentials,
+  readBiometricCredentials,
+  readBiometricMeta,
+  readSecureSession,
+  saveBiometricCredentials,
+  writeSecureSession,
+} from '@/services/authStorage';
 import type {
   AuthResponse,
   AuthUser,
@@ -39,10 +47,22 @@ interface AuthContextValue {
   accessToken: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
+  biometricLoginAvailable: boolean;
+  biometricLoginEnabled: boolean;
+  biometricLoginEmail: string | null;
+  login: (
+    email: string,
+    password: string,
+    options?: { enableBiometric?: boolean },
+  ) => Promise<AuthResponse>;
+  loginWithBiometrics: () => Promise<AuthResponse>;
   socialLogin: (provider: 'google', socialAccessToken: string) => Promise<AuthResponse>;
-  registerAccount: (payload: RegisterPayload) => Promise<AuthResponse>;
+  registerAccount: (
+    payload: RegisterPayload,
+    options?: { enableBiometric?: boolean },
+  ) => Promise<AuthResponse>;
   forgotPassword: (email: string) => Promise<MessageResponse>;
+  disableBiometricLogin: () => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<AuthUser>;
 }
@@ -53,8 +73,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [biometricLoginEmail, setBiometricLoginEmail] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
+  const biometricLoginAvailable = isBiometricLoginAvailable();
 
   const persistSession = useCallback(async (response: AuthResponse) => {
     tokenRef.current = response.access_token;
@@ -65,6 +87,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user: response.user,
     });
   }, []);
+
+  const disableBiometricLogin = useCallback(async () => {
+    setBiometricLoginEmail(null);
+    await clearBiometricCredentials();
+  }, []);
+
+  const enableBiometricLogin = useCallback(
+    async (email: string, password: string) => {
+      if (!biometricLoginAvailable) return;
+
+      await saveBiometricCredentials({
+        email: email.trim(),
+        password,
+      });
+      setBiometricLoginEmail(email.trim());
+    },
+    [biometricLoginAvailable],
+  );
 
   const clearSession = useCallback(async () => {
     tokenRef.current = null;
@@ -110,7 +150,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
 
     async function bootstrap() {
-      const stored = await readSecureSession<StoredSession>();
+      const [stored, biometricMeta] = await Promise.all([
+        readSecureSession<StoredSession>(),
+        readBiometricMeta(),
+      ]);
+
+      if (active) {
+        setBiometricLoginEmail(biometricMeta?.email ?? null);
+      }
 
       if (!stored?.accessToken) {
         if (active) setIsBootstrapping(false);
@@ -144,17 +191,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clearSession]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (
+      email: string,
+      password: string,
+      options?: { enableBiometric?: boolean },
+    ) => {
       const response = await apiClient.post<AuthResponse>(
         '/auth/login',
         { email: email.trim(), password, remember: true },
         { auth: false, skipAuthRefresh: true },
       );
       await persistSession(response);
+      if (options?.enableBiometric) {
+        try {
+          await enableBiometricLogin(email, password);
+        } catch {
+          // Keep the account logged in even if the device biometrics fail to save.
+        }
+      }
       return response;
     },
-    [persistSession],
+    [enableBiometricLogin, persistSession],
   );
+
+  const loginWithBiometrics = useCallback(async () => {
+    const credentials = await readBiometricCredentials();
+
+    if (!credentials?.email || !credentials.password) {
+      await disableBiometricLogin();
+      throw new Error('Não encontramos um acesso biométrico salvo neste aparelho.');
+    }
+
+    return login(credentials.email, credentials.password, { enableBiometric: true });
+  }, [disableBiometricLogin, login]);
 
   const socialLogin = useCallback(
     async (provider: 'google', socialAccessToken: string) => {
@@ -170,15 +239,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const registerAccount = useCallback(
-    async (payload: RegisterPayload) => {
+    async (
+      payload: RegisterPayload,
+      options?: { enableBiometric?: boolean },
+    ) => {
       const response = await apiClient.post<AuthResponse>('/auth/register', payload, {
         auth: false,
         skipAuthRefresh: true,
       });
       await persistSession(response);
+      if (options?.enableBiometric) {
+        try {
+          await enableBiometricLogin(payload.email, payload.password);
+        } catch {
+          // Keep the account created even if the device biometrics fail to save.
+        }
+      }
       return response;
     },
-    [persistSession],
+    [enableBiometricLogin, persistSession],
   );
 
   const forgotPassword = useCallback(
@@ -200,9 +279,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     } finally {
       await signOutGoogle();
+      await disableBiometricLogin();
       await clearSession();
     }
-  }, [clearSession]);
+  }, [clearSession, disableBiometricLogin]);
 
   const refreshProfile = useCallback(async () => {
     const response = await apiClient.get<ResourceResponse<AuthUser>>('/auth/me');
@@ -224,18 +304,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
       accessToken,
       isAuthenticated: Boolean(user && accessToken),
       isBootstrapping,
+      biometricLoginAvailable,
+      biometricLoginEnabled: Boolean(biometricLoginEmail),
+      biometricLoginEmail,
       login,
+      loginWithBiometrics,
       socialLogin,
       registerAccount,
       forgotPassword,
+      disableBiometricLogin,
       logout,
       refreshProfile,
     }),
     [
       accessToken,
+      biometricLoginAvailable,
+      biometricLoginEmail,
+      disableBiometricLogin,
       forgotPassword,
       isBootstrapping,
       login,
+      loginWithBiometrics,
       logout,
       refreshProfile,
       registerAccount,

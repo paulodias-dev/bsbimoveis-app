@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   },
   panelSecondary: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.82)',
-    backgroundColor: 'rgba(255,255,255,0.48)',
+    borderColor: '#D8E4FF',
+    backgroundColor: '#F7FAFF',
   },
   pressed: {
     opacity: 0.84,

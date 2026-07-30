@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   panelContainer: {
-    gap: 5,
+    gap: 6,
   },
   eyebrow: {
     color: colors.brand,
@@ -42,8 +42,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   panelEyebrow: {
-    fontSize: 9,
-    letterSpacing: 1,
+    color: colors.brandDark,
+    fontSize: 10,
+    letterSpacing: 1.4,
   },
   title: {
     color: colors.text,
@@ -52,8 +53,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   panelTitle: {
-    fontSize: 24,
-    lineHeight: 29,
+    fontSize: 26,
+    lineHeight: 31,
   },
   description: {
     color: colors.textMuted,
@@ -63,6 +64,6 @@ const styles = StyleSheet.create({
   panelDescription: {
     maxWidth: 580,
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 20,
   },
 });

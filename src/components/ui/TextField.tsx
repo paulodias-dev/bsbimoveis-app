@@ -1,3 +1,4 @@
+import { usePathname } from 'expo-router';
 import {
   StyleSheet,
   Text,
@@ -14,12 +15,15 @@ interface TextFieldProps extends TextInputProps {
 }
 
 export function TextField({ label, error, hint, style, ...props }: TextFieldProps) {
+  const pathname = usePathname();
+  const isPanel = pathname.startsWith('/painel');
+
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, isPanel && styles.panelLabel]}>{label}</Text>
       <TextInput
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, error && styles.inputError, style]}
+        style={[styles.input, isPanel && styles.panelInput, error && styles.inputError, style]}
         {...props}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -37,6 +41,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  panelLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
   input: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -46,6 +54,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     paddingHorizontal: spacing.md,
+  },
+  panelInput: {
+    minHeight: 52,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E4EAF3',
+    backgroundColor: '#FBFCFE',
   },
   inputError: {
     borderColor: colors.danger,
