@@ -59,7 +59,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
-    "@types/react": "~19.1.0",
+    "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true
   }
 }
