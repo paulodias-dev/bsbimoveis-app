@@ -6,6 +6,7 @@ import {
   PanelChromeProvider,
   PanelDrawer,
   PanelHeader,
+  PanelProfileMenu,
 } from '@/features/panel/PanelChrome';
 
 export default function PanelLayout() {
@@ -35,6 +36,7 @@ export default function PanelLayout() {
         </Stack>
         <PanelBottomBar />
         <PanelDrawer />
+        <PanelProfileMenu />
       </View>
     </PanelChromeProvider>
   );

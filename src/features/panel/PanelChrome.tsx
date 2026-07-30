@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import {
+  type ComponentProps,
   createContext,
   useCallback,
   useContext,
@@ -31,21 +32,34 @@ import {
 
 interface PanelChromeContextValue {
   isMenuOpen: boolean;
+  isProfileMenuOpen: boolean;
   openMenu: () => void;
   closeMenu: () => void;
+  openProfileMenu: () => void;
+  closeProfileMenu: () => void;
 }
 
 const PanelChromeContext = createContext<PanelChromeContextValue | null>(null);
 
 export function PanelChromeProvider({ children }: PropsWithChildren) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const value = useMemo<PanelChromeContextValue>(
     () => ({
       isMenuOpen,
-      openMenu: () => setIsMenuOpen(true),
+      isProfileMenuOpen,
+      openMenu: () => {
+        setIsProfileMenuOpen(false);
+        setIsMenuOpen(true);
+      },
       closeMenu: () => setIsMenuOpen(false),
+      openProfileMenu: () => {
+        setIsMenuOpen(false);
+        setIsProfileMenuOpen(true);
+      },
+      closeProfileMenu: () => setIsProfileMenuOpen(false),
     }),
-    [isMenuOpen],
+    [isMenuOpen, isProfileMenuOpen],
   );
 
   return <PanelChromeContext.Provider value={value}>{children}</PanelChromeContext.Provider>;
@@ -89,7 +103,7 @@ export function PanelHeader() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { openMenu } = usePanelChrome();
+  const { openMenu, openProfileMenu } = usePanelChrome();
   const isDashboard = pathname === '/painel' || pathname === '/painel/';
   const avatarUrl = resolveAvatarUrl(user?.avatar_path);
 
@@ -127,8 +141,8 @@ export function PanelHeader() {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Abrir perfil"
-          onPress={() => router.push('/painel/perfil')}
+          accessibilityLabel="Abrir menu da conta"
+          onPress={openProfileMenu}
           style={({ pressed }) => [styles.headerAvatar, pressed && styles.pressed]}
         >
           {avatarUrl ? (
@@ -140,6 +154,134 @@ export function PanelHeader() {
         </Pressable>
       </View>
     </View>
+  );
+}
+
+interface ProfileMenuAction {
+  label: string;
+  icon: ComponentProps<typeof Ionicons>['name'];
+  onPress: () => void;
+  danger?: boolean;
+}
+
+export function PanelProfileMenu() {
+  const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
+  const { isProfileMenuOpen, closeProfileMenu } = usePanelChrome();
+
+  const navigate = useCallback(
+    (href: string) => {
+      closeProfileMenu();
+      requestAnimationFrame(() => router.push(href as never));
+    },
+    [closeProfileMenu],
+  );
+
+  const signOut = useCallback(async () => {
+    closeProfileMenu();
+    await logout();
+    router.replace('/');
+  }, [closeProfileMenu, logout]);
+
+  const actions = useMemo<ProfileMenuAction[]>(
+    () => [
+      {
+        label: 'Voltar para o site',
+        icon: 'close',
+        onPress: () => {
+          closeProfileMenu();
+          requestAnimationFrame(() => router.replace('/'));
+        },
+      },
+      {
+        label: 'Editar perfil',
+        icon: 'person-circle-outline',
+        onPress: () => navigate('/painel/perfil'),
+      },
+      {
+        label: 'Segurança',
+        icon: 'shield-checkmark-outline',
+        onPress: () => navigate('/painel/seguranca'),
+      },
+      {
+        label: 'Assinatura',
+        icon: 'information-circle-outline',
+        onPress: () => navigate('/painel/assinatura'),
+      },
+      {
+        label: 'Sair',
+        icon: 'log-out-outline',
+        onPress: () => void signOut(),
+        danger: true,
+      },
+    ],
+    [closeProfileMenu, navigate, signOut],
+  );
+
+  return (
+    <Modal
+      visible={isProfileMenuOpen}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={closeProfileMenu}
+    >
+      <View style={styles.profileMenuRoot}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Fechar menu da conta"
+          onPress={closeProfileMenu}
+          style={styles.profileMenuBackdrop}
+        />
+
+        <View
+          style={[
+            styles.profileMenuCard,
+            {
+              marginTop: insets.top + 58,
+            },
+          ]}
+        >
+          <View style={styles.profileMenuHeader}>
+            <Text style={styles.profileMenuName} numberOfLines={1}>
+              {user?.name ?? 'Usuário'}
+            </Text>
+            <Text style={styles.profileMenuEmail} numberOfLines={1}>
+              {user?.email ?? ''}
+            </Text>
+          </View>
+
+          <View style={styles.profileMenuItems}>
+            {actions.slice(0, -1).map((action) => (
+              <Pressable
+                key={action.label}
+                accessibilityRole="button"
+                accessibilityLabel={action.label}
+                onPress={action.onPress}
+                style={({ pressed }) => [
+                  styles.profileMenuItem,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons name={action.icon} size={26} color="#667085" />
+                <Text style={styles.profileMenuItemText}>{action.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.profileMenuDivider} />
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sair"
+            onPress={actions[actions.length - 1]?.onPress}
+            style={({ pressed }) => [styles.profileMenuLogout, pressed && styles.pressed]}
+          >
+            <Text style={styles.profileMenuLogoutText}>Sair</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -552,6 +694,81 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     flexDirection: 'row',
+  },
+  profileMenuRoot: {
+    flex: 1,
+  },
+  profileMenuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(9,17,38,0.18)',
+  },
+  profileMenuCard: {
+    alignSelf: 'flex-end',
+    width: '68%',
+    maxWidth: 330,
+    marginRight: spacing.lg,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: '#E7ECF3',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 16,
+  },
+  profileMenuHeader: {
+    gap: 4,
+    paddingBottom: spacing.md,
+  },
+  profileMenuName: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  profileMenuEmail: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  profileMenuItems: {
+    gap: spacing.xs,
+  },
+  profileMenuItem: {
+    minHeight: 54,
+    borderRadius: 18,
+    paddingHorizontal: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  profileMenuItemText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  profileMenuDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: '#DDE3ED',
+  },
+  profileMenuLogout: {
+    minHeight: 52,
+    justifyContent: 'center',
+    borderRadius: 18,
+    paddingHorizontal: spacing.sm,
+  },
+  profileMenuLogoutText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
   },
   drawerBackdrop: {
     position: 'absolute',
