@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FormProvider,
   useForm,
@@ -45,11 +45,22 @@ import {
   propertyToFormValues,
   type PropertyFormValues,
 } from './schema';
-import { AddressStep } from './steps/AddressStep';
-import { AmenitiesStep } from './steps/AmenitiesStep';
-import { DetailsStep } from './steps/DetailsStep';
-import { PhotosStep } from './steps/PhotosStep';
-import { ReviewStep } from './steps/ReviewStep';
+
+const DetailsStep = lazy(() =>
+  import('./steps/DetailsStep').then((module) => ({ default: module.DetailsStep })),
+);
+const AddressStep = lazy(() =>
+  import('./steps/AddressStep').then((module) => ({ default: module.AddressStep })),
+);
+const AmenitiesStep = lazy(() =>
+  import('./steps/AmenitiesStep').then((module) => ({ default: module.AmenitiesStep })),
+);
+const PhotosStep = lazy(() =>
+  import('./steps/PhotosStep').then((module) => ({ default: module.PhotosStep })),
+);
+const ReviewStep = lazy(() =>
+  import('./steps/ReviewStep').then((module) => ({ default: module.ReviewStep })),
+);
 
 interface PropertyWizardScreenProps {
   propertyId?: number;
@@ -103,6 +114,14 @@ function firstInvalidStep(error: ZodError): number {
   }
   if (field === 'amenity_ids') return 2;
   return 0;
+}
+
+function StepFallback() {
+  return (
+    <Card>
+      <StateView title="Carregando etapa..." loading />
+    </Card>
+  );
 }
 
 export function PropertyWizardScreen({ propertyId }: PropertyWizardScreenProps) {
@@ -532,23 +551,25 @@ export function PropertyWizardScreen({ propertyId }: PropertyWizardScreenProps) 
           </Card>
         ) : null}
 
-        {currentStep === 0 ? <DetailsStep categories={categories} /> : null}
-        {currentStep === 1 ? <AddressStep onFeedback={showFeedback} /> : null}
-        {currentStep === 2 ? <AmenitiesStep amenities={amenities} /> : null}
-        {currentStep === 3 && property ? (
-          <PhotosStep
-            property={property}
-            isUploading={isUploading}
-            busyPhotoId={busyPhotoId}
-            onUpload={uploadPhotos}
-            onRemove={removePhoto}
-            onMove={movePhoto}
-            onFeedback={showFeedback}
-          />
-        ) : null}
-        {currentStep === 4 && property ? (
-          <ReviewStep values={getValues()} property={property} categories={categories} />
-        ) : null}
+        <Suspense fallback={<StepFallback />}>
+          {currentStep === 0 ? <DetailsStep categories={categories} /> : null}
+          {currentStep === 1 ? <AddressStep onFeedback={showFeedback} /> : null}
+          {currentStep === 2 ? <AmenitiesStep amenities={amenities} /> : null}
+          {currentStep === 3 && property ? (
+            <PhotosStep
+              property={property}
+              isUploading={isUploading}
+              busyPhotoId={busyPhotoId}
+              onUpload={uploadPhotos}
+              onRemove={removePhoto}
+              onMove={movePhoto}
+              onFeedback={showFeedback}
+            />
+          ) : null}
+          {currentStep === 4 && property ? (
+            <ReviewStep values={getValues()} property={property} categories={categories} />
+          ) : null}
+        </Suspense>
 
         <View style={styles.footerActions}>
           {currentStep > 0 ? (

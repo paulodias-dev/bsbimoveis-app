@@ -20,6 +20,7 @@ export default function PanelLayout() {
             headerShadowVisible: false,
             contentStyle: { backgroundColor: 'transparent' },
             animation: 'fade_from_bottom',
+            freezeOnBlur: true,
           }}
         >
           <Stack.Screen name="index" />
