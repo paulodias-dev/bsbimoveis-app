@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -42,6 +42,31 @@ function propertyStatus(property: Property): { label: string; tone: 'success' | 
     return { label: 'Publicado', tone: 'success' };
   }
   return { label: 'Rascunho', tone: 'muted' };
+}
+
+function clampPercentage(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
+
+function propertyQualityScore(property: Property): number {
+  let score = 0;
+  const photoCount = property.photos_count ?? property.photos?.length ?? 0;
+
+  if ((property.title ?? '').trim().length >= 12) score += 20;
+  if ((property.description ?? '').trim().length >= 80) score += 20;
+  if (photoCount >= 5) score += 25;
+  else if (photoCount >= 3) score += 17;
+  else if (photoCount > 0) score += 8;
+  if (property.latitude && property.longitude) score += 20;
+  if ((property.price_sale ?? property.price_rent ?? property.price_seasonal_daily ?? 0) > 0) score += 15;
+
+  return score;
+}
+
+function formatIntentRate(value: number): string {
+  if (!value) return '0%';
+  return `${value.toFixed(1)}%`;
 }
 
 export default function DashboardScreen() {
@@ -95,8 +120,26 @@ export default function DashboardScreen() {
         !property.latitude ||
         !property.longitude,
     ).length;
+    const publicationScore = properties.length ? Math.round((published / properties.length) * 100) : 0;
+    const qualityScore = properties.length
+      ? Math.round(
+          properties.reduce((total, property) => total + propertyQualityScore(property), 0) /
+            properties.length,
+        )
+      : 0;
+    const intentRate = views ? (favoriteSignals / views) * 100 : 0;
 
-    return { published, pending, drafts, views, favoriteSignals, incomplete };
+    return {
+      published,
+      pending,
+      drafts,
+      views,
+      favoriteSignals,
+      incomplete,
+      publicationScore,
+      qualityScore,
+      intentRate,
+    };
   }, [properties]);
 
   const recentProperties = useMemo(
@@ -115,6 +158,45 @@ export default function DashboardScreen() {
   const usedSlots = properties.length;
   const usagePercentage = planLimit > 0 ? Math.min((usedSlots / planLimit) * 100, 100) : 0;
   const firstName = user?.name.split(/\s+/)[0] || 'cliente';
+  const remainingSlots = subscription?.remaining_slots ?? 0;
+
+  const nextAction = useMemo(() => {
+    if (summary.incomplete > 0) {
+      return {
+        badge: 'Otimizar',
+        title: 'Melhorar qualidade',
+        description: `${summary.incomplete} anúncio(s) podem receber mais fotos ou localização para melhorar conversão.`,
+        buttonLabel: 'Executar agora',
+        href: '/painel/desempenho' as const,
+      };
+    }
+    if (summary.pending > 0) {
+      return {
+        badge: 'Publicação',
+        title: 'Acompanhar revisão',
+        description: `${summary.pending} anúncio(s) aguardando aprovação para entrar na vitrine.`,
+        buttonLabel: 'Ver imóveis',
+        href: '/painel/imoveis' as const,
+      };
+    }
+    if (remainingSlots > 0) {
+      return {
+        badge: 'Expansão',
+        title: 'Cadastrar novo imóvel',
+        description: `${remainingSlots} vaga(s) ainda disponível(is) no seu plano atual.`,
+        buttonLabel: 'Cadastrar agora',
+        href: '/painel/imoveis/novo' as const,
+      };
+    }
+
+    return {
+      badge: 'Análise',
+      title: 'Explorar desempenho',
+      description: 'Revise alcance, favoritos e pontos fortes da carteira para priorizar próximos ajustes.',
+      buttonLabel: 'Abrir dados',
+      href: '/painel/desempenho' as const,
+    };
+  }, [remainingSlots, summary.incomplete, summary.pending]);
 
   if (isLoading && properties.length === 0) {
     return (
@@ -139,6 +221,12 @@ export default function DashboardScreen() {
     >
       <GlassCard style={styles.heroCard} intensity={66}>
         <View style={styles.heroGlow} />
+        <View style={styles.heroBadgeRow}>
+          <Text style={styles.heroEyebrow}>PAINEL INTELIGENTE</Text>
+          <View style={styles.heroDataBadge}>
+            <Text style={styles.heroDataBadgeText}>Dados reais</Text>
+          </View>
+        </View>
         <View style={styles.heroTopline}>
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
@@ -147,26 +235,97 @@ export default function DashboardScreen() {
           <Text style={styles.today}>{todayLabel()}</Text>
         </View>
         <Text style={styles.greeting}>{greeting()}, {firstName}.</Text>
-        <Text style={styles.heroDescription}>
-          Sua carteira está sincronizada. Veja o que exige atenção e continue a gestão sem sair do aplicativo.
+        <View style={styles.heroFacts}>
+          <InfoPill icon="business-outline" label={`${properties.length} na carteira`} tone="neutral" />
+          <InfoPill icon="checkmark-circle-outline" label={`${summary.published} publicados`} tone="success" />
+          <InfoPill icon="time-outline" label={`${summary.pending} em revisão`} tone="warning" />
+        </View>
+        <Text style={styles.heroSupportText}>
+          Qualidade, publicação e interesse em um só lugar.
         </Text>
-        <View style={styles.heroHighlights}>
-          <View style={styles.heroHighlight}>
-            <Text style={styles.heroHighlightValue}>{summary.pending}</Text>
-            <Text style={styles.heroHighlightLabel}>em revisão</Text>
-          </View>
-          <View style={styles.heroDivider} />
-          <View style={styles.heroHighlight}>
-            <Text style={styles.heroHighlightValue}>{subscription?.remaining_slots ?? 0}</Text>
-            <Text style={styles.heroHighlightLabel}>vagas livres</Text>
-          </View>
-          <View style={styles.heroDivider} />
-          <View style={styles.heroHighlight}>
-            <Text style={styles.heroHighlightValue}>{summary.favoriteSignals}</Text>
-            <Text style={styles.heroHighlightLabel}>interesses</Text>
-          </View>
+        <View style={styles.heroActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/painel/imoveis/novo')}
+            style={({ pressed }) => [
+              styles.heroPrimaryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.heroPrimaryButtonText}>Cadastrar imóvel</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/painel/desempenho')}
+            style={({ pressed }) => [
+              styles.heroSecondaryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.heroSecondaryButtonText}>Desempenho</Text>
+          </Pressable>
+        </View>
+        <View style={styles.heroSignalsGrid}>
+          <SignalCard label="Publicação" value={`${summary.publicationScore}%`} />
+          <SignalCard label="Qualidade" value={`${summary.qualityScore}%`} />
+          <SignalCard label="Intenção" value={formatIntentRate(summary.intentRate)} />
+          <SignalCard
+            label="Vagas"
+            value={`${Math.round(clampPercentage(usagePercentage))}%`}
+          />
         </View>
       </GlassCard>
+
+      <GlassCard style={styles.nextActionCard} intensity={54}>
+        <View style={styles.nextActionTopline}>
+          <Text style={styles.sectionEyebrow}>PRÓXIMA AÇÃO</Text>
+          <View style={styles.nextActionBadge}>
+            <Text style={styles.nextActionBadgeText}>{nextAction.badge}</Text>
+          </View>
+        </View>
+        <View style={styles.nextActionBody}>
+          <View style={styles.nextActionCopy}>
+            <Text style={styles.nextActionTitle}>{nextAction.title}</Text>
+            <Text style={styles.nextActionDescription} numberOfLines={3}>
+              {nextAction.description}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push(nextAction.href)}
+            style={({ pressed }) => [styles.nextActionButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.nextActionButtonText}>{nextAction.buttonLabel}</Text>
+          </Pressable>
+        </View>
+      </GlassCard>
+
+      <View style={styles.snapshotGrid}>
+        <SnapshotCard
+          title="Imóveis ativos"
+          value={summary.published}
+          description="Anúncios publicados e visíveis."
+          dotColor="#12B76A"
+        />
+        <SnapshotCard
+          title="Visualizações"
+          value={summary.views}
+          description="Alcance real registrado."
+          dotColor="#3157FF"
+        />
+        <SnapshotCard
+          title="Favoritos"
+          value={summary.favoriteSignals}
+          description="Sinais de interesse."
+          dotColor="#F79009"
+        />
+        <SnapshotCard
+          title="Vagas livres"
+          value={remainingSlots}
+          description={subscription?.plan?.is_free ? 'Plano gratuito' : 'Capacidade atual'}
+          dotColor="#667085"
+        />
+      </View>
 
       {error ? (
         <GlassCard style={styles.errorCard}>
@@ -185,8 +344,8 @@ export default function DashboardScreen() {
 
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionEyebrow}>VISÃO GERAL</Text>
-          <Text style={styles.sectionTitle}>Sua operação hoje</Text>
+          <Text style={styles.sectionEyebrow}>RADAR</Text>
+          <Text style={styles.sectionTitle}>Pontos de atenção</Text>
         </View>
         <Pressable onPress={() => router.push('/painel/desempenho')} style={styles.sectionLink}>
           <Text style={styles.sectionLinkText}>Detalhes</Text>
@@ -196,31 +355,43 @@ export default function DashboardScreen() {
 
       <View style={styles.metricsGrid}>
         <MetricCard
-          icon="business-outline"
-          label="Imóveis"
-          value={properties.length}
-          caption={`${summary.drafts} rascunho(s)`}
-          accent="#3157FF"
+          icon="time-outline"
+          label="Em revisão"
+          value={summary.pending}
+          caption={
+            summary.pending
+              ? 'Aguardando aprovação'
+              : 'Nenhum anúncio pendente'
+          }
+          accent="#F79009"
         />
         <MetricCard
-          icon="checkmark-circle-outline"
-          label="Publicados"
-          value={summary.published}
-          caption="Na vitrine agora"
-          accent="#039855"
-        />
-        <MetricCard
-          icon="eye-outline"
-          label="Visualizações"
-          value={summary.views}
-          caption="Alcance acumulado"
+          icon="document-text-outline"
+          label="Rascunhos"
+          value={summary.drafts}
+          caption={
+            summary.drafts
+              ? 'Prontos para finalizar'
+              : 'Carteira sem rascunhos'
+          }
           accent="#7A5AF8"
         />
         <MetricCard
-          icon="heart-outline"
-          label="Favoritos"
-          value={favorites.length}
-          caption={`${summary.favoriteSignals} sinais recebidos`}
+          icon="images-outline"
+          label="Incompletos"
+          value={summary.incomplete}
+          caption={
+            summary.incomplete
+              ? 'Com pouca mídia ou sem mapa'
+              : 'Cadastros bem preenchidos'
+          }
+          accent="#3157FF"
+        />
+        <MetricCard
+          icon="pulse-outline"
+          label="Taxa de intenção"
+          value={formatIntentRate(summary.intentRate)}
+          caption="Favoritos por visualização"
           accent="#E31B54"
         />
       </View>
@@ -375,9 +546,9 @@ function MetricCard({
   caption,
   accent,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: ComponentProps<typeof Ionicons>['name'];
   label: string;
-  value: number;
+  value: number | string;
   caption: string;
   accent: string;
 }) {
@@ -389,9 +560,63 @@ function MetricCard({
         </View>
         <Ionicons name="trending-up" size={15} color="#98A2B3" />
       </View>
-      <Text style={styles.metricValue}>{value.toLocaleString('pt-BR')}</Text>
+      <Text style={styles.metricValue}>
+        {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
+      </Text>
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={styles.metricCaption}>{caption}</Text>
+    </GlassCard>
+  );
+}
+
+function SignalCard({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.heroSignalCard}>
+      <Text style={styles.heroSignalLabel}>{label}</Text>
+      <Text style={styles.heroSignalValue}>{value}</Text>
+    </View>
+  );
+}
+
+function InfoPill({
+  icon,
+  label,
+  tone,
+}: {
+  icon: ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  tone: 'neutral' | 'success' | 'warning';
+}) {
+  const tint =
+    tone === 'success' ? '#12B76A' : tone === 'warning' ? '#F79009' : '#93A3FF';
+
+  return (
+    <View style={styles.infoPill}>
+      <Ionicons name={icon} size={13} color={tint} />
+      <Text style={styles.infoPillText}>{label}</Text>
+    </View>
+  );
+}
+
+function SnapshotCard({
+  title,
+  value,
+  description,
+  dotColor,
+}: {
+  title: string;
+  value: number;
+  description: string;
+  dotColor: string;
+}) {
+  return (
+    <GlassCard style={styles.snapshotCard} padding={spacing.md} intensity={34}>
+      <View style={styles.snapshotTopline}>
+        <Text style={styles.snapshotTitle}>{title}</Text>
+        <View style={[styles.snapshotDot, { backgroundColor: dotColor }]} />
+      </View>
+      <Text style={styles.snapshotValue}>{value.toLocaleString('pt-BR')}</Text>
+      <Text style={styles.snapshotDescription}>{description}</Text>
     </GlassCard>
   );
 }
@@ -403,7 +628,7 @@ function QuickAction({
   onPress,
   primary = false,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: ComponentProps<typeof Ionicons>['name'];
   title: string;
   description: string;
   onPress: () => void;
@@ -437,7 +662,7 @@ function AttentionItem({
   tone,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
+  icon: ComponentProps<typeof Ionicons>['name'];
   title: string;
   description: string;
   tone: 'success' | 'warning' | 'brand';
@@ -531,6 +756,7 @@ const styles = StyleSheet.create({
   heroCard: {
     borderColor: '#1E3C71',
     backgroundColor: '#10284D',
+    overflow: 'hidden',
     shadowColor: '#10284D',
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.2,
@@ -539,18 +765,44 @@ const styles = StyleSheet.create({
   },
   heroGlow: {
     position: 'absolute',
-    width: 210,
-    height: 210,
-    borderRadius: 105,
-    right: -75,
-    top: -105,
-    backgroundColor: 'rgba(91,124,255,0.28)',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    right: -68,
+    top: -88,
+    backgroundColor: 'rgba(91,124,255,0.18)',
   },
   heroTopline: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  heroEyebrow: {
+    color: '#93A3FF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2.2,
+  },
+  heroDataBadge: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroDataBadgeText: {
+    color: '#D5DCFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   liveBadge: {
     borderRadius: radius.pill,
@@ -579,43 +831,194 @@ const styles = StyleSheet.create({
   },
   greeting: {
     color: colors.white,
-    fontSize: 29,
-    lineHeight: 35,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '900',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
-  heroDescription: {
-    color: '#D0D5DD',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: spacing.sm,
+  heroFacts: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
   },
-  heroHighlights: {
-    marginTop: spacing.xl,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.18)',
+  infoPill: {
+    minHeight: 30,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  heroHighlight: {
+  infoPillText: {
+    color: '#E6EBFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  heroSupportText: {
+    color: '#D0D5DD',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: spacing.sm,
+  },
+  heroActionRow: {
+    marginTop: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  heroPrimaryButton: {
     flex: 1,
+    minHeight: 54,
+    borderRadius: 18,
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
+    backgroundColor: colors.brand,
   },
-  heroHighlightValue: {
+  heroPrimaryButtonText: {
     color: colors.white,
-    fontSize: 19,
+    fontSize: 15,
     fontWeight: '900',
   },
-  heroHighlightLabel: {
-    color: '#B8C0D7',
-    fontSize: 9,
+  heroSecondaryButton: {
+    flex: 1,
+    minHeight: 54,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
-  heroDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  heroSecondaryButtonText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  heroSignalsGrid: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  heroSignalCard: {
+    width: '23%',
+    minHeight: 74,
+    borderRadius: 16,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  heroSignalLabel: {
+    color: '#D5DCFF',
+    fontSize: 9,
+    lineHeight: 12,
+  },
+  heroSignalValue: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  nextActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7ECF3',
+  },
+  nextActionTopline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  nextActionBadge: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+    backgroundColor: '#FFF5E8',
+  },
+  nextActionBadgeText: {
+    color: '#DC6803',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  nextActionBody: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.md,
+  },
+  nextActionCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  nextActionTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  nextActionDescription: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 17,
+  },
+  nextActionButton: {
+    minHeight: 50,
+    borderRadius: 16,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand,
+  },
+  nextActionButtonText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  snapshotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  snapshotCard: {
+    width: '48%',
+    minHeight: 138,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7ECF3',
+  },
+  snapshotTopline: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  snapshotTitle: {
+    flex: 1,
+    color: '#667085',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  snapshotDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  snapshotValue: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: spacing.sm,
+  },
+  snapshotDescription: {
+    color: colors.textMuted,
+    fontSize: 10,
+    lineHeight: 15,
+    marginTop: 2,
   },
   errorCard: {
     backgroundColor: '#FFF7F5',
@@ -651,7 +1054,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 21,
+    fontSize: 18,
     fontWeight: '900',
     marginTop: 3,
   },
@@ -688,19 +1091,19 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     color: colors.text,
-    fontSize: 27,
+    fontSize: 24,
     fontWeight: '900',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   metricLabel: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     marginTop: 2,
   },
   metricCaption: {
     color: colors.textMuted,
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 3,
   },
   quickGrid: {
